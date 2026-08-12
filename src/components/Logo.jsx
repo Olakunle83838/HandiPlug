@@ -1,6 +1,6 @@
 import logoImg from "../assets/logo.png";
 
-export default function Logo({ size = 72, showWordmark = false, wordmarkClass = "text-[#0F2A44]" }) {
+export default function Logo({ size = 40, showWordmark = false, wordmarkClass = "text-[#0F2A44]" }) {
   return (
     <div className="flex items-center gap-2">
       <img

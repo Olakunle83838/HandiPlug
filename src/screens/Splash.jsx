@@ -7,7 +7,7 @@ export default function Splash() {
   return (
     <div className="bg-[#0F2A44] flex flex-col items-center h-full w-full">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-10">
-        <Logo size={200} showWordmark={false} />
+        <Logo size={160} showWordmark={false} />
         <p className="text-white/70 font-bold text-base text-center">
           Artisan Problems, We go Solve am
         </p>

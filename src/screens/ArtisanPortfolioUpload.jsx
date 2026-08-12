@@ -1,0 +1,44 @@
+import { useNavigate } from "react-router-dom";
+import { StatusSpace, Button } from "../components/UI";
+
+export default function ArtisanPortfolioUpload() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="bg-white flex flex-col h-full w-full">
+      <StatusSpace />
+      <div className="flex items-center gap-3 px-6 pt-2">
+        <button onClick={() => navigate(-1)} className="text-2xl text-[#1F2937]">
+          ‹
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col px-6 pt-4 gap-5">
+        <h1 className="text-[#1F2937] text-2xl font-bold">
+          Upload your portfolio photos
+        </h1>
+        <p className="text-[#6B7280] text-sm -mt-3">
+          Show off your best work — customers trust artisans with photos.
+        </p>
+
+        <button className="border-2 border-dashed border-[#E5E7EB] rounded-2xl h-[270px] w-full flex flex-col items-center justify-center gap-3 text-center px-6">
+          <span className="text-4xl">🖼️</span>
+          <span className="text-[#1F2937] text-sm font-semibold">
+            Upload your image in SVG, PNG, JPEG
+          </span>
+          <span className="bg-[#0F2A44] text-white text-sm font-semibold rounded-[10px] px-5 py-2">
+            Upload
+          </span>
+        </button>
+
+        <button className="flex items-center gap-2 text-[#FF7A00] text-sm font-semibold self-start">
+          ⬆️ Upload next image
+        </button>
+      </div>
+
+      <div className="p-6">
+        <Button onClick={() => navigate("/artisan/kyc")}>Continue</Button>
+      </div>
+    </div>
+  );
+}

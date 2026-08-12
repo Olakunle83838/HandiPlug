@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, StatusSpace } from "../components/UI";
 
-// Note: the Artisan journey (KYC, dashboard, jobs) is a separate build —
-// this screen currently routes every role to the Customer Home.
 export default function OtpVerification() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const role = params.get("role") || "customer";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const handleChange = (i, val) => {
@@ -50,7 +50,9 @@ export default function OtpVerification() {
         </div>
       </div>
       <div className="p-6">
-        <Button onClick={() => navigate("/home")}>Verify &amp; Continue</Button>
+        <Button onClick={() => navigate(role === "artisan" ? "/artisan/build-profile" : "/home")}>
+          Verify &amp; Continue
+        </Button>
       </div>
     </div>
   );

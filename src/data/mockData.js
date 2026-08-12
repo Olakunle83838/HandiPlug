@@ -28,3 +28,37 @@ export const myBookings = {
   ],
   completed: [],
 };
+
+export const newRequests = [
+  {
+    id: 1,
+    customer: "Chukwudi Divine",
+    time: "Thu, 2:00 PM",
+    detail: "Rewire kitchen sockets — Lekki Phase 1",
+  },
+];
+
+export const artisanJobs = {
+  pending: [
+    { id: 1, customer: "Chukwudi Divine", time: "Thu, 2:00 PM · Lekki Phase 1", detail: "Rewire kitchen sockets" },
+  ],
+  accepted: [
+    { id: 2, customer: "Amaka Johnson", time: "Fri, 10:00 AM · Ikeja GRA", detail: "Install ceiling fan" },
+  ],
+  completed: [
+    { id: 3, customer: "Segun Bello", time: "Mon, 1:00 PM · Yaba", detail: "Fix tripping breaker", amount: "₦12,000" },
+  ],
+};
+
+export const adminStats = [
+  { label: "Users", value: "1,204" },
+  { label: "Pending KYC", value: "6" },
+  { label: "Flags", value: "2" },
+];
+
+export const verificationQueue = [
+  { id: 1, name: "Kelechi Obi", trade: "Painter", submitted: "Submitted 2 days ago" },
+  { id: 2, name: "Segun Bello", trade: "AC Technician", submitted: "Submitted 2 days ago" },
+  { id: 3, name: "Blessing Eze", trade: "Plumber", submitted: "Submitted 3 days ago" },
+];
+

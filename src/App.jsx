@@ -17,6 +17,13 @@ import Payment from "./screens/Payment";
 import PaymentSuccess from "./screens/PaymentSuccess";
 import Rating from "./screens/Rating";
 import Notifications from "./screens/Notifications";
+import ArtisanBuildProfile from "./screens/ArtisanBuildProfile";
+import ArtisanPortfolioUpload from "./screens/ArtisanPortfolioUpload";
+import ArtisanKyc from "./screens/ArtisanKyc";
+import ArtisanDashboard from "./screens/ArtisanDashboard";
+import ArtisanJobs from "./screens/ArtisanJobs";
+import ArtisanProfileHome from "./screens/ArtisanProfileHome";
+import AdminModeration from "./screens/AdminModeration";
 
 // Wraps every screen in a phone-sized frame so the app previews correctly
 // on desktop while still being fully responsive/full-bleed on real mobile.
@@ -53,6 +60,18 @@ export default function App() {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/rating" element={<Rating />} />
           <Route path="/notifications" element={<Notifications />} />
+
+          {/* Artisan journey */}
+          <Route path="/artisan/build-profile" element={<ArtisanBuildProfile />} />
+          <Route path="/artisan/portfolio" element={<ArtisanPortfolioUpload />} />
+          <Route path="/artisan/kyc" element={<ArtisanKyc />} />
+          <Route path="/artisan/dashboard" element={<ArtisanDashboard />} />
+          <Route path="/artisan/jobs" element={<ArtisanJobs />} />
+          <Route path="/artisan/profile" element={<ArtisanProfileHome />} />
+
+          {/* Admin */}
+          <Route path="/admin" element={<AdminModeration />} />
+
           <Route path="*" element={<Navigate to="/splash" replace />} />
         </Routes>
       </PhoneFrame>

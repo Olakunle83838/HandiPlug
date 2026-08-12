@@ -29,7 +29,7 @@ export default function Signup() {
         <TextInput label="Password" placeholder="••••••••" type="password" />
         <TextInput label="Home Address" placeholder="Lagos Island, Lagos State" />
 
-        <Button className="mt-2" onClick={() => navigate("/otp")}>
+        <Button className="mt-2" onClick={() => navigate(`/otp?role=${role === "I'm an Artisan" ? "artisan" : "customer"}`)}>
           Create Account
         </Button>
       </div>

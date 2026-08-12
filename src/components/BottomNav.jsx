@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 
-const ITEMS = [
+const CUSTOMER_ITEMS = [
   { icon: "🏠", label: "Home", path: "/home" },
   { icon: "🔍", label: "Search", path: "/search" },
   { icon: "📋", label: "Bookings", path: "/bookings" },
@@ -8,9 +8,17 @@ const ITEMS = [
   { icon: "👤", label: "Profile", path: "/profile" },
 ];
 
-export default function BottomNav() {
+const ARTISAN_ITEMS = [
+  { icon: "🏠", label: "Home", path: "/artisan/dashboard" },
+  { icon: "🧰", label: "Jobs", path: "/artisan/jobs" },
+  { icon: "💬", label: "Chat", path: "/chat" },
+  { icon: "👤", label: "Profile", path: "/artisan/profile" },
+];
+
+export default function BottomNav({ role = "customer" }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const ITEMS = role === "artisan" ? ARTISAN_ITEMS : CUSTOMER_ITEMS;
 
   return (
     <div className="bg-white border-t border-[#E5E7EB] h-[78px] w-full shrink-0 flex items-center justify-around px-2">
@@ -40,3 +48,4 @@ export default function BottomNav() {
     </div>
   );
 }
+

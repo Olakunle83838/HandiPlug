@@ -3,7 +3,7 @@
 // border #E5E7EB · surface #F5F6F8 · success #22C55E · star #FACC15
 
 export function StatusSpace() {
-  return <div className="h-[54px] w-full shrink-0" />;
+  return <div className="h-[54px] w-full shrink-0 md:hidden" />;
 }
 
 export function Button({ children, variant = "primary", className = "", ...props }) {

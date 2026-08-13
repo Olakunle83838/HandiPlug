@@ -21,7 +21,7 @@ export default function BottomNav({ role = "customer" }) {
   const ITEMS = role === "artisan" ? ARTISAN_ITEMS : CUSTOMER_ITEMS;
 
   return (
-    <div className="bg-white border-t border-[#E5E7EB] h-[78px] w-full shrink-0 flex items-center justify-around px-2">
+    <div className="md:hidden bg-white border-t border-[#E5E7EB] h-[78px] w-full shrink-0 flex items-center justify-around px-2">
       {ITEMS.map((item) => {
         const active = pathname === item.path;
         return (

@@ -25,12 +25,13 @@ import ArtisanJobs from "./screens/ArtisanJobs";
 import ArtisanProfileHome from "./screens/ArtisanProfileHome";
 import AdminModeration from "./screens/AdminModeration";
 
-// Wraps every screen in a phone-sized frame so the app previews correctly
-// on desktop while still being fully responsive/full-bleed on real mobile.
+// Wraps every screen. On mobile it's a phone-sized frame; from the md
+// breakpoint up it becomes a full-width desktop layout (no frame, no
+// artificial max-width) — same route, same component, CSS handles the rest.
 function PhoneFrame({ children }) {
   return (
-    <div className="min-h-screen w-full bg-[#e9edf1] flex items-center justify-center">
-      <div className="w-full max-w-[430px] h-screen sm:h-[932px] sm:max-h-[932px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden relative">
+    <div className="min-h-screen w-full bg-[#e9edf1] md:bg-white flex items-center justify-center md:block">
+      <div className="w-full max-w-[430px] h-screen sm:h-[932px] sm:max-h-[932px] bg-white sm:rounded-[40px] sm:shadow-2xl overflow-hidden relative md:max-w-none md:h-screen md:rounded-none md:shadow-none md:overflow-visible">
         {children}
       </div>
     </div>

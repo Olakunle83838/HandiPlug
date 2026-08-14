@@ -3,7 +3,7 @@ import { StatusSpace, Label, Button, Avatar, TextInput } from "../components/UI"
 import TopNav from "../components/TopNav";
 
 const FIELDS = [
-  { icon: "🔨", label: "Trade / Category", value: "Carpenter" },
+  { icon: "🔨", label: "Wetin be your trade?", value: "Carpenter" },
   { icon: "📈", label: "Years of Experience", value: "6 years" },
 ];
 
@@ -45,8 +45,8 @@ export default function ArtisanBuildProfile() {
               <button className="absolute bottom-0 right-0 size-8 rounded-full bg-[#FF7A00] text-white flex items-center justify-center text-lg border-2 border-white">+</button>
             </div>
           </div>
-          {FIELDS.map((f) => <SelectField key={f.label} f={f} />)}
-          <Bio />
+          {FIELDS.map((f) => <div key={f.label}>{SelectField({ f })}</div>)}
+          {Bio()}
           <TextInput label="Hourly Rate" defaultValue="₦8,000/hr" />
         </div>
         <div className="p-6">
@@ -70,9 +70,9 @@ export default function ArtisanBuildProfile() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {FIELDS.map((f) => <SelectField key={f.label} f={f} />)}
+              {FIELDS.map((f) => <div key={f.label}>{SelectField({ f })}</div>)}
             </div>
-            <Bio />
+            {Bio()}
             <TextInput label="Hourly Rate" defaultValue="₦8,000/hr" />
             <Button onClick={() => navigate("/artisan/portfolio")}>Next</Button>
           </div>

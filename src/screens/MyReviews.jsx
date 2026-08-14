@@ -52,7 +52,7 @@ export default function MyReviews() {
           <h1 className="text-[#1F2937] text-2xl font-bold">Reviews I&apos;ve Left</h1>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-4 flex flex-col gap-3 pb-4">
-          {list.length === 0 ? <Empty /> : list.map((r) => <Row key={r.id} r={r} />)}
+          {list.length === 0 ? Empty({}) : list.map((r) => <div key={r.id}>{Row({ r })}</div>)}
         </div>
         <BottomNav />
       </div>
@@ -63,7 +63,7 @@ export default function MyReviews() {
         <div className="flex-1 overflow-y-auto px-12 py-8">
           <div className="max-w-[800px] mx-auto flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-2xl font-bold">Reviews I&apos;ve Left</h1>
-            {list.length === 0 ? <Empty /> : <div className="flex flex-col gap-3">{list.map((r) => <Row key={r.id} r={r} />)}</div>}
+            {list.length === 0 ? Empty({}) : <div className="flex flex-col gap-3">{list.map((r) => <div key={r.id}>{Row({ r })}</div>)}</div>}
           </div>
         </div>
       </div>

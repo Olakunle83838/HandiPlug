@@ -73,8 +73,8 @@ export default function Rating() {
           <Avatar size={120} />
           <p className="text-[#1F2937] text-xl font-bold">{artisan.fullName}</p>
           <p className="text-[#6B7280] text-sm text-center">{artisan.trade}</p>
-          <Stars />
-          <Review />
+          {Stars({})}
+          {Review()}
           {error && <p className="text-[#EF4444] text-sm">{error}</p>}
           {done && <p className="text-[#22C55E] text-sm">✓ Review submitted — thank you!</p>}
         </div>
@@ -101,10 +101,10 @@ export default function Rating() {
             </div>
             <div className="flex flex-col items-center gap-1 py-3">
               <p className="text-[#6B7280] text-xs font-bold">YOUR RATING</p>
-              <Stars size="text-3xl" />
+              {Stars({size: "text-3xl"})}
             </div>
             <p className="text-[#6B7280] text-xs font-bold">WRITE A REVIEW</p>
-            <Review />
+            {Review()}
             {error && <p className="text-[#EF4444] text-sm">{error}</p>}
             {done && <p className="text-[#22C55E] text-sm">✓ Review submitted — thank you!</p>}
             <Button className="mt-3" onClick={submit} disabled={loading || done}>

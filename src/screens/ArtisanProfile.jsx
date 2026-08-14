@@ -53,6 +53,9 @@ export default function ArtisanProfile() {
               <Stars rating={artisan.rating} />
               <span className="text-[#6B7280] text-sm">({artisan.reviewCount} reviews)</span>
             </div>
+            {artisan.verified && (
+              <span className="text-[#22C55E] text-xs font-medium">⚡ Usually responds within 5 minutes</span>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <Label>Bio</Label>
@@ -88,6 +91,9 @@ export default function ArtisanProfile() {
               <p className="text-[#6B7280] text-sm text-center mt-1">{artisan.trade} · {artisan.yearsExperience} yrs experience</p>
               <p className="text-[#6B7280] text-sm">{artisan.area}</p>
               <Stars rating={artisan.rating} />
+              {artisan.verified && (
+                <span className="text-[#22C55E] text-xs font-medium">⚡ Usually responds within 5 minutes</span>
+              )}
               <div className="flex items-center justify-between bg-[#F5F6F8] rounded-xl px-4 h-12 w-full mt-3">
                 <span className="text-[#6B7280] text-sm">Service Rate</span>
                 <span className="text-[#1F2937] text-sm font-semibold">from ₦{Number(artisan.hourlyRate).toLocaleString()}</span>

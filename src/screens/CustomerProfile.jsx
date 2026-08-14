@@ -9,7 +9,6 @@ const ROWS = [
   { label: "My Bookings", path: "/bookings" },
   { label: "Saved Artisans", path: "/saved-artisans" },
   { label: "Reviews I've Left", path: "/my-reviews" },
-  { label: "Brand / Logo", path: "/brand" },
   { label: "Settings", path: "/settings" },
 ];
 

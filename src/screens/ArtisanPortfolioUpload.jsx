@@ -24,7 +24,7 @@ export default function ArtisanPortfolioUpload() {
         <div className="flex-1 flex flex-col px-6 pt-4 gap-5">
           <h1 className="text-[#1F2937] text-2xl font-bold">Upload your portfolio photos</h1>
           <p className="text-[#6B7280] text-sm -mt-3">Show off your best work — customers trust artisans with photos.</p>
-          <UploadZone />
+          {UploadZone({})}
           <button className="flex items-center gap-2 text-[#FF7A00] text-sm font-semibold self-start">⬆️ Upload next image</button>
         </div>
         <div className="p-6">
@@ -40,8 +40,8 @@ export default function ArtisanPortfolioUpload() {
             <h1 className="text-[#1F2937] text-2xl font-bold">Upload your portfolio photos</h1>
             <p className="text-[#6B7280] text-sm -mt-3">Show off your best work — customers trust artisans with photos.</p>
             <div className="grid grid-cols-2 gap-4">
-              <UploadZone tall />
-              <UploadZone tall />
+              {UploadZone({tall: true})}
+              {UploadZone({tall: true})}
             </div>
             <Button className="max-w-[220px]" onClick={() => navigate("/artisan/kyc")}>Continue</Button>
           </div>

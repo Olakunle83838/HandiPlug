@@ -108,7 +108,8 @@ export default function AdminModeration() {
             links={[
               { label: "Verifications", onClick: () => setTab("Verification Queue") },
               { label: "Flagged Reviews", onClick: () => setTab("Flagged Content") },
-              { label: "Users" },
+              { label: "Users", path: "/admin/users" },
+              { label: "Product Branding", path: "/brand" },
             ]}
           />
           <div className="flex-1 overflow-y-auto px-10 py-8">

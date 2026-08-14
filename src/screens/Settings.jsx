@@ -74,7 +74,7 @@ export default function Settings() {
           <h1 className="text-[#1F2937] text-2xl font-bold">Settings</h1>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
-          <Form />
+          {Form()}
         </div>
         <BottomNav role={user?.role === "artisan" ? "artisan" : "customer"} />
       </div>
@@ -87,14 +87,13 @@ export default function Settings() {
             title="SETTINGS"
             links={[
               { label: "Security" },
-              { label: "Brand / Logo", path: "/brand" },
               { label: "Log Out", onClick: () => { logout(); navigate("/login"); } },
             ]}
           />
           <div className="flex-1 overflow-y-auto px-12 py-8">
             <div className="max-w-[480px]">
               <h1 className="text-[#1F2937] text-2xl font-bold mb-6">Settings</h1>
-              <Form />
+              {Form()}
             </div>
           </div>
         </div>

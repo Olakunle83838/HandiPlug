@@ -50,7 +50,7 @@ export default function Login() {
         <div className="flex-1 flex flex-col gap-4 px-6 pt-[39px]">
           <h1 className="text-[#1F2937] text-[32px] font-bold leading-[38.4px]">Welcome Back</h1>
           <div className="h-2" />
-          <Form />
+          {Form()}
           <div className="h-2" />
           <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
           <div className="flex gap-1.5 items-center justify-center pt-2">
@@ -77,7 +77,7 @@ export default function Login() {
         <div className="w-1/2 flex items-center justify-center px-16">
           <div className="w-full max-w-[400px] flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-[32px] font-bold">Welcome Back</h1>
-            <Form />
+            {Form()}
             <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Log In"}</Button>
             <div className="flex gap-1.5 items-center justify-center pt-2">
               <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>

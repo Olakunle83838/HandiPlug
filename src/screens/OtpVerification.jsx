@@ -49,7 +49,7 @@ export default function OtpVerification() {
               Enter the 6-digit code we sent to +234 800 000 0000
             </p>
           </div>
-          <OtpBoxes />
+          {OtpBoxes({})}
           <div className="flex gap-1.5 items-center">
             <span className="text-[#6B7280] text-sm">Didn&apos;t get a code?</span>
             <button className="text-[#0F2A44] text-sm font-semibold">Resend Code</button>
@@ -76,7 +76,7 @@ export default function OtpVerification() {
             <p className="text-[#6B7280] text-sm -mt-3">
               Enter the 6-digit code we sent to +234 800 000 0000
             </p>
-            <OtpBoxes size={56} />
+            {OtpBoxes({size: 56})}
             <div className="flex gap-1.5 items-center">
               <span className="text-[#6B7280] text-sm">Didn&apos;t get a code?</span>
               <button className="text-[#0F2A44] text-sm font-semibold">Resend Code</button>

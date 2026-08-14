@@ -69,8 +69,8 @@ export default function Chat() {
             <p className="text-[#22C55E] text-xs">● Online</p>
           </div>
         </div>
-        <Bubbles />
-        <Composer />
+        {Bubbles()}
+        {Composer()}
       </div>
 
       {/* ---------- DESKTOP ---------- */}
@@ -103,8 +103,8 @@ export default function Chat() {
                 <p className="text-[#22C55E] text-xs">● Online</p>
               </div>
             </div>
-            <Bubbles />
-            <Composer />
+            {Bubbles()}
+            {Composer()}
           </div>
 
           <div className="w-[260px] shrink-0 border-l border-[#E5E7EB] py-6 px-5 flex flex-col gap-3">

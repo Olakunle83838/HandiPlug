@@ -9,7 +9,6 @@ const ROWS = [
   { label: "Portfolio", path: "/artisan/portfolio" },
   { label: "Payout Details", path: "/artisan/payout" },
   { label: "Verification Status", path: "/artisan/kyc" },
-  { label: "Brand / Logo", path: "/brand" },
   { label: "Settings", path: "/settings" },
 ];
 

@@ -25,25 +25,54 @@ const upload = multer({
 
 const router = Router();
 
-// Artisan uploads a KYC document (real file, saved to /server/uploads)
-router.post("/submit", requireAuth, requireRole("artisan"), upload.single("document"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No document uploaded" });
-  const { documentType } = req.body;
+// Artisan uploads KYC documents: ID document + selfie for facial verification,
+// plus 2 guarantors — matches the PRD's "NIN + facial verification + 2
+// guarantors per artisan" requirement.
+router.post(
+  "/submit",
+  requireAuth,
+  requireRole("artisan"),
+  upload.fields([{ name: "document", maxCount: 1 }, { name: "selfie", maxCount: 1 }]),
+  (req, res) => {
+    const documentFile = req.files?.document?.[0];
+    if (!documentFile) return res.status(400).json({ error: "No ID document uploaded" });
 
-  const data = db.read();
-  const submission = {
-    id: db.id(),
-    artisanId: req.auth.id,
-    documentType: documentType || "Unspecified",
-    fileName: req.file.filename,
-    originalName: req.file.originalname,
-    status: "pending",
-    submittedAt: new Date().toISOString(),
-  };
-  data.kycSubmissions.push(submission);
-  db.write(data);
-  res.status(201).json({ submission });
-});
+    const {
+      documentType,
+      ninNumber,
+      guarantor1Name,
+      guarantor1Phone,
+      guarantor2Name,
+      guarantor2Phone,
+    } = req.body;
+
+    if (!guarantor1Name || !guarantor1Phone || !guarantor2Name || !guarantor2Phone) {
+      return res.status(400).json({ error: "Both guarantors' name and phone are required" });
+    }
+
+    const selfieFile = req.files?.selfie?.[0];
+
+    const data = db.read();
+    const submission = {
+      id: db.id(),
+      artisanId: req.auth.id,
+      documentType: documentType || "Unspecified",
+      fileName: documentFile.filename,
+      originalName: documentFile.originalname,
+      ninNumber: ninNumber || "",
+      selfieFileName: selfieFile?.filename || null,
+      guarantors: [
+        { name: guarantor1Name, phone: guarantor1Phone },
+        { name: guarantor2Name, phone: guarantor2Phone },
+      ],
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+    };
+    data.kycSubmissions.push(submission);
+    db.write(data);
+    res.status(201).json({ submission });
+  }
+);
 
 router.get("/mine", requireAuth, requireRole("artisan"), (req, res) => {
   const data = db.read();

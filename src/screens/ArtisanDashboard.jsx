@@ -14,6 +14,7 @@ export default function ArtisanDashboard() {
   const { token, user, isAuthed } = useAuth();
   const [bookings, setBookings] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [boosted, setBoosted] = useState(false);
 
   const load = () => {
     if (!isAuthed) return;
@@ -64,6 +65,29 @@ export default function ArtisanDashboard() {
               <p className="text-[#1F2937] text-2xl font-bold">₦84K</p>
             </Card>
           </div>
+          <div className="px-6 pt-5 flex flex-col gap-3">
+            <div className="bg-[#0F2A44] rounded-[20px] p-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-white text-sm font-bold">⭐ Go Verified Pro</p>
+                <p className="text-white/70 text-xs mt-1">
+                  ₦5,000/mo · priority in job feed · 0% commission on first 2 jobs
+                </p>
+              </div>
+              <button className="bg-[#FF7A00] text-white text-xs font-semibold rounded-[8px] px-3 py-2 shrink-0">
+                Upgrade
+              </button>
+            </div>
+            <div className="border border-[#E5E7EB] rounded-[20px] p-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[#1F2937] text-sm font-bold">🚀 Boost Your Profile</p>
+                <p className="text-[#6B7280] text-xs mt-1">₦500 · appear first in search for 24 hours</p>
+              </div>
+              <button onClick={() => setBoosted(true)} disabled={boosted} className="bg-[#0F2A44] text-white text-xs font-semibold rounded-[8px] px-3 py-2 shrink-0 disabled:opacity-50">
+                {boosted ? "Boosted ✓" : "Boost"}
+              </button>
+            </div>
+          </div>
+
           <div className="px-6 pt-6 pb-4 flex flex-col gap-2.5">
             <p className="text-[#6B7280] text-xs font-bold tracking-[0.2px]">NEW BOOKING REQUESTS</p>
             {pending.length === 0 && <p className="text-[#6B7280] text-sm text-center pt-6">No new requests right now.</p>}
@@ -111,6 +135,29 @@ export default function ArtisanDashboard() {
                 <p className="text-[#1F2937] text-3xl font-bold">{user?.rating || "4.9"} ★</p>
                 <p className="text-[#6B7280] text-sm">Average Rating</p>
               </Card>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#0F2A44] rounded-2xl p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-white text-base font-bold">⭐ Go Verified Pro — ₦5,000/mo</p>
+                  <p className="text-white/70 text-sm mt-1">
+                    Priority placement, Verified Pro badge, 0% commission on first 2 jobs.
+                  </p>
+                </div>
+                <button className="bg-[#FF7A00] text-white text-sm font-semibold rounded-[10px] px-5 py-2.5 shrink-0">
+                  Upgrade
+                </button>
+              </div>
+              <div className="border border-[#E5E7EB] rounded-2xl p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-[#1F2937] text-base font-bold">🚀 Boost Your Profile — ₦500</p>
+                  <p className="text-[#6B7280] text-sm mt-1">Appear first in search results for 24 hours.</p>
+                </div>
+                <button onClick={() => setBoosted(true)} disabled={boosted} className="bg-[#0F2A44] text-white text-sm font-semibold rounded-[10px] px-5 py-2.5 shrink-0 disabled:opacity-50">
+                  {boosted ? "Boosted ✓" : "Boost"}
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col gap-4">

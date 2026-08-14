@@ -50,7 +50,7 @@ export default function ForgotPassword() {
           <p className="text-[#6B7280] text-sm -mt-2">
             Enter your account email and we'll send reset instructions.
           </p>
-          <Form />
+          {Form()}
           <Button onClick={submit} disabled={loading}>{loading ? "Sending..." : "Send Reset Link"}</Button>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function ForgotPassword() {
             <p className="text-[#6B7280] text-sm -mt-2">
               Enter your account email and we'll send reset instructions.
             </p>
-            <Form />
+            {Form()}
             <Button onClick={submit} disabled={loading}>{loading ? "Sending..." : "Send Reset Link"}</Button>
             <button onClick={() => navigate("/login")} className="text-[#0F2A44] text-sm font-semibold self-center">
               Back to Log In

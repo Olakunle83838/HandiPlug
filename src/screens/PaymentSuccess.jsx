@@ -41,7 +41,7 @@ export default function PaymentSuccess() {
       <div className="md:hidden flex flex-col h-full w-full">
         <StatusSpace />
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
-          <Card />
+          {Card()}
         </div>
         <div className="p-6">
           <Button variant="outline" onClick={() => navigate("/home")}>Back to Home</Button>
@@ -52,7 +52,7 @@ export default function PaymentSuccess() {
       <div className="hidden md:flex md:flex-col md:h-full md:w-full">
         <TopNav variant="app" />
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <Card />
+          {Card()}
           <Button className="max-w-[500px]" variant="outline" onClick={() => navigate("/home")}>
             Back to Home
           </Button>

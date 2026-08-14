@@ -80,7 +80,7 @@ export default function BookingRequest() {
             <h1 className="text-[#1F2937] text-2xl font-bold">Request a Booking</h1>
             <p className="text-[#6B7280] text-sm mt-2">with {artisan.fullName} · {artisan.trade}</p>
           </div>
-          <Form />
+          {Form()}
           <Button className="mt-2" onClick={submit} disabled={loading}>
             {loading ? "Sending..." : "Send Request"}
           </Button>
@@ -100,7 +100,7 @@ export default function BookingRequest() {
           </div>
           <div className="w-full max-w-[420px] flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-2xl font-bold">Request a Booking</h1>
-            <Form />
+            {Form()}
             <Button className="mt-2" onClick={submit} disabled={loading}>
               {loading ? "Sending..." : "Send Request"}
             </Button>

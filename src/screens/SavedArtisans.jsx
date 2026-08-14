@@ -41,7 +41,7 @@ export default function SavedArtisans() {
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-4 flex flex-col gap-3 pb-4">
           {saved.length === 0 && <p className="text-[#6B7280] text-sm text-center pt-8">No saved artisans yet.</p>}
-          {saved.map((a) => <Row key={a.id} a={a} />)}
+          {saved.map((a) => <div key={a.id}>{Row({ a })}</div>)}
         </div>
         <BottomNav />
       </div>
@@ -53,7 +53,7 @@ export default function SavedArtisans() {
           <div className="max-w-[800px] mx-auto flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-2xl font-bold">Saved Artisans</h1>
             <div className="grid grid-cols-2 gap-4">
-              {saved.map((a) => <Row key={a.id} a={a} />)}
+              {saved.map((a) => <div key={a.id}>{Row({ a })}</div>)}
             </div>
           </div>
         </div>

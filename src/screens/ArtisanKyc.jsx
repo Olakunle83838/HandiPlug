@@ -10,8 +10,13 @@ export default function ArtisanKyc() {
   const navigate = useNavigate();
   const { token, isAuthed } = useAuth();
   const fileRef = useRef(null);
+  const selfieRef = useRef(null);
   const [docType, setDocType] = useState("National ID (NIN)");
+  const [ninNumber, setNinNumber] = useState("");
   const [file, setFile] = useState(null);
+  const [selfie, setSelfie] = useState(null);
+  const [guarantor1, setGuarantor1] = useState({ name: "", phone: "" });
+  const [guarantor2, setGuarantor2] = useState({ name: "", phone: "" });
   const [uploaded, setUploaded] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,6 +24,10 @@ export default function ArtisanKyc() {
   const handlePick = (e) => {
     const f = e.target.files?.[0];
     if (f) setFile(f);
+  };
+  const handleSelfiePick = (e) => {
+    const f = e.target.files?.[0];
+    if (f) setSelfie(f);
   };
 
   const doUpload = async () => {
@@ -28,17 +37,28 @@ export default function ArtisanKyc() {
       return;
     }
     if (!file) {
-      setError("Choose a file first.");
+      setError("Choose an ID document first.");
+      return;
+    }
+    if (!guarantor1.name || !guarantor1.phone || !guarantor2.name || !guarantor2.phone) {
+      setError("HandiPlug requires 2 guarantors — please fill in both.");
       return;
     }
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("document", file);
+      if (selfie) formData.append("selfie", selfie);
       formData.append("documentType", docType);
+      formData.append("ninNumber", ninNumber);
+      formData.append("guarantor1Name", guarantor1.name);
+      formData.append("guarantor1Phone", guarantor1.phone);
+      formData.append("guarantor2Name", guarantor2.name);
+      formData.append("guarantor2Phone", guarantor2.phone);
       const res = await api.submitKyc(formData, token);
       setUploaded((u) => [...u, res.submission]);
       setFile(null);
+      setSelfie(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,6 +98,41 @@ export default function ArtisanKyc() {
     </div>
   );
 
+  const SelfieZone = () => (
+    <div className="border-2 border-dashed border-[#E5E7EB] rounded-2xl w-full h-[140px] flex flex-col items-center justify-center gap-2 text-center px-6">
+      <span className="text-3xl">🤳</span>
+      <span className="text-[#1F2937] text-sm font-semibold">
+        {selfie ? selfie.name : "Take or upload a selfie for facial verification"}
+      </span>
+      <span className="text-[#9CA3AF] text-xs">Matched against your ID photo</span>
+      <input ref={selfieRef} type="file" accept="image/png,image/jpeg" capture="user" onChange={handleSelfiePick} className="hidden" />
+      <button
+        onClick={() => selfieRef.current?.click()}
+        className="bg-[#F5F6F8] text-[#1F2937] text-sm font-semibold rounded-[10px] px-5 py-2 mt-1"
+      >
+        {selfie ? "Retake" : "Take Selfie"}
+      </button>
+    </div>
+  );
+
+  const GuarantorFields = () => (
+    <div className="flex flex-col gap-4">
+      <Label>Guarantors (2 required)</Label>
+      <p className="text-[#9CA3AF] text-xs -mt-2">
+        HandiPlug verifies every artisan with NIN, facial verification, and 2
+        guarantors who can vouch for you.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <TextInput label="Guarantor 1 Name" placeholder="Full name" value={guarantor1.name} onChange={(e) => setGuarantor1((g) => ({ ...g, name: e.target.value }))} />
+        <TextInput label="Guarantor 1 Phone" placeholder="+234 800 000 0000" value={guarantor1.phone} onChange={(e) => setGuarantor1((g) => ({ ...g, phone: e.target.value }))} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <TextInput label="Guarantor 2 Name" placeholder="Full name" value={guarantor2.name} onChange={(e) => setGuarantor2((g) => ({ ...g, name: e.target.value }))} />
+        <TextInput label="Guarantor 2 Phone" placeholder="+234 800 000 0000" value={guarantor2.phone} onChange={(e) => setGuarantor2((g) => ({ ...g, phone: e.target.value }))} />
+      </div>
+    </div>
+  );
+
   const DocRow = ({ doc }) => (
     <div className="flex items-center justify-between border border-[#E5E7EB] rounded-xl px-4 h-[68px]">
       <span className="flex items-center gap-3 text-[#1F2937] text-sm">
@@ -103,11 +158,16 @@ export default function ArtisanKyc() {
           <div>
             <h1 className="text-[#1F2937] text-2xl font-bold">Verify Your Identity</h1>
             <p className="text-[#6B7280] text-sm mt-2">
-              HandiPlug requires ID verification (FR-03) to keep the platform safe for everyone.
+              HandiPlug verifies every artisan with your NIN, a facial verification
+              selfie, and 2 guarantors — this is what makes the Verified Badge mean
+              something to customers.
             </p>
           </div>
-          <DocTypeField />
-          <UploadZone />
+          {DocTypeField()}
+          <TextInput label="NIN Number" placeholder="e.g. 12345678901" value={ninNumber} onChange={(e) => setNinNumber(e.target.value)} />
+          {UploadZone({})}
+          {SelfieZone()}
+          {GuarantorFields()}
           {error && <p className="text-[#EF4444] text-sm">{error}</p>}
           <button onClick={doUpload} disabled={loading} className="h-11 rounded-[10px] bg-[#0F2A44] text-white text-sm font-semibold disabled:opacity-50">
             {loading ? "Uploading..." : "Upload Document"}
@@ -115,7 +175,7 @@ export default function ArtisanKyc() {
           {uploaded.length > 0 && (
             <div className="flex flex-col gap-2">
               <Label>Uploaded documents</Label>
-              {uploaded.map((d) => <DocRow key={d.id} doc={d} />)}
+              {uploaded.map((d) => <div key={d.id}>{DocRow({ doc: d })}</div>)}
             </div>
           )}
         </div>
@@ -135,22 +195,26 @@ export default function ArtisanKyc() {
             <div className="w-[340px] shrink-0 flex flex-col gap-5">
               <h1 className="text-[#1F2937] text-2xl font-bold">Verify Your Identity</h1>
               <p className="text-[#6B7280] text-sm">
-                Upload a real document (it's saved to the server's /uploads folder) to unlock
-                your Verified badge and start receiving bookings from customers.
+                HandiPlug verifies every artisan with NIN, facial verification, and
+                2 guarantors to unlock your Verified badge and start receiving
+                bookings from customers.
               </p>
               <div className="border border-[#E5E7EB] rounded-2xl p-4">
-                <p className="text-[#1F2937] text-sm font-semibold">Accepted documents</p>
+                <p className="text-[#1F2937] text-sm font-semibold">What you'll need</p>
                 <p className="text-[#6B7280] text-sm mt-1">
-                  National ID (NIN), Trade Certification, or Proof of Address.
+                  Your NIN, a valid ID document, a selfie for facial matching, and 2
+                  guarantors who can vouch for you.
                 </p>
               </div>
             </div>
             <div className="flex-1 flex flex-col gap-6">
               <div className="grid grid-cols-2 gap-4">
-                <DocTypeField />
-                <TextInput label="ID / Cert Number" placeholder="e.g. 12345678901" />
+                {DocTypeField()}
+                <TextInput label="NIN Number" placeholder="e.g. 12345678901" value={ninNumber} onChange={(e) => setNinNumber(e.target.value)} />
               </div>
-              <UploadZone tall />
+              {UploadZone({tall: true})}
+              {SelfieZone()}
+              {GuarantorFields()}
               {error && <p className="text-[#EF4444] text-sm">{error}</p>}
               <div className="flex gap-3">
                 <button onClick={doUpload} disabled={loading} className="h-11 px-6 rounded-[10px] bg-[#0F2A44] text-white text-sm font-semibold disabled:opacity-50">
@@ -160,7 +224,7 @@ export default function ArtisanKyc() {
               {uploaded.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <Label>Uploaded documents</Label>
-                  {uploaded.map((d) => <DocRow key={d.id} doc={d} />)}
+                  {uploaded.map((d) => <div key={d.id}>{DocRow({ doc: d })}</div>)}
                 </div>
               )}
               <Button className="max-w-[220px]" onClick={() => navigate("/artisan/dashboard")}>

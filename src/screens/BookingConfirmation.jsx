@@ -43,14 +43,14 @@ export default function BookingConfirmation() {
     <div className="bg-white flex flex-col h-full w-full">
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
-        <Content />
+        {Content({})}
       </div>
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:flex-col md:h-full md:w-full">
         <TopNav variant="app" />
         <div className="flex-1 flex items-center justify-center">
-          <Content desktop />
+          {Content({desktop: true})}
         </div>
       </div>
     </div>

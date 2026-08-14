@@ -54,7 +54,7 @@ export default function Signup() {
           <h1 className="text-[#1F2937] text-[32px] font-bold leading-[39px]">Create Account</h1>
           <p className="text-[#6B7280] text-sm -mt-2">Join the Lagos&rsquo;s trusted artisan community</p>
           <TogglePill options={["I'm a Customer", "I'm an Artisan"]} active={role} onChange={setRole} />
-          <Form />
+          {Form()}
           {error && <p className="text-[#EF4444] text-sm">{error}</p>}
           <Button className="mt-2" onClick={submit} disabled={loading}>
             {loading ? "Creating account..." : "Create Account"}

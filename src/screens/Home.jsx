@@ -59,7 +59,7 @@ export default function Home() {
 
           <div className="px-6 pt-5">
             <div className="bg-[#0F2A44] rounded-[20px] p-5">
-              <p className="text-white text-[16px] leading-[24px]">First job #1000 off</p>
+              <p className="text-white text-[16px] leading-[24px]">First job ₦1,000 off</p>
               <p className="text-white text-[16px] leading-[24px]">Book any verified artisan this week</p>
             </div>
           </div>

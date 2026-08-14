@@ -44,7 +44,8 @@ export default function Payment() {
       <div className="flex justify-between font-bold text-[#1F2937]"><span>Total</span><span>₦19,163</span></div>
       <div className="bg-[#F5F6F8] rounded-xl p-3 text-xs text-[#6B7280] flex gap-2">
         <span>↩️</span>
-        Funds are released to Musa only after you confirm here — held safely in escrow until now.
+        Money stays with HandiPlug until you confirm the job is done — that's what
+        keeps this platform trustworthy for everyone.
       </div>
       <Button onClick={() => navigate("/payment-success")}>💰 Pay ₦19,163 &amp; Release Funds</Button>
     </div>
@@ -64,8 +65,8 @@ export default function Payment() {
               <p className="text-[#6B7280] text-xs">Plumber · marked this job as done</p>
             </div>
           </div>
-          <MethodList />
-          <Summary />
+          {MethodList()}
+          {Summary()}
         </div>
       </div>
 
@@ -87,10 +88,10 @@ export default function Payment() {
                     <p className="text-[#6B7280] text-sm mt-1">Plumber · marked this job as done.</p>
                   </div>
                 </div>
-                <MethodList />
+                {MethodList()}
               </div>
               <div className="w-[420px] shrink-0">
-                <Summary />
+                {Summary()}
               </div>
             </div>
           </div>

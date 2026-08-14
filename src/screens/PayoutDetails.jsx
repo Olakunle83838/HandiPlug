@@ -59,7 +59,7 @@ export default function PayoutDetails() {
           <h1 className="text-[#1F2937] text-2xl font-bold">Payout Details</h1>
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
-          <Form />
+          {Form()}
         </div>
         <BottomNav role="artisan" />
       </div>
@@ -70,7 +70,7 @@ export default function PayoutDetails() {
         <div className="flex-1 overflow-y-auto px-12 py-10 flex justify-center">
           <div className="w-full max-w-[480px]">
             <h1 className="text-[#1F2937] text-2xl font-bold mb-6">Payout Details</h1>
-            <Form />
+            {Form()}
           </div>
         </div>
       </div>

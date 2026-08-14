@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+const SECRET = process.env.JWT_SECRET || "HandiPlugSuperSecretKey_2026!SecureAuth#91";
 
 export function signToken(user) {
   return jwt.sign({ id: user.id, role: user.role }, SECRET, { expiresIn: "7d" });

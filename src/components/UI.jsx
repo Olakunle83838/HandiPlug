@@ -8,7 +8,7 @@ export function StatusSpace() {
 
 export function Button({ children, variant = "primary", className = "", ...props }) {
   const base =
-    "h-[52px] w-full rounded-[10px] flex items-center justify-center font-bold text-[16px] transition active:scale-[0.98]";
+    "h-[52px] w-full rounded-[10px] flex items-center justify-center font-bold text-[16px] transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
   const variants = {
     primary: "bg-[#FF7A00] text-white hover:bg-[#e66e00]",
     dark: "bg-[#0F2A44] text-white hover:bg-[#0c2236]",

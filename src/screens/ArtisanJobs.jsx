@@ -1,29 +1,54 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Card } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import { Table, THead, TRow, TCell, StatusPill } from "../components/DesktopExtras";
-import { artisanJobs } from "../data/mockData";
+import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+import { artisanJobs as mockJobs } from "../data/mockData";
 
 const TABS = ["Pending", "Accepted", "Completed"];
 const pillFor = { Pending: "Pending", Accepted: "Accepted", Completed: "Completed" };
 
 export default function ArtisanJobs() {
   const navigate = useNavigate();
+  const { token, isAuthed } = useAuth();
   const [tab, setTab] = useState("Accepted");
-  const [jobs, setJobs] = useState(artisanJobs);
+  const [bookings, setBookings] = useState(null);
+  const [busy, setBusy] = useState(null);
 
-  const markComplete = (id) => {
-    setJobs((prev) => {
-      const job = prev.accepted.find((j) => j.id === id);
-      if (!job) return prev;
-      return { ...prev, accepted: prev.accepted.filter((j) => j.id !== id), completed: [{ ...job, amount: "₦16,250" }, ...prev.completed] };
-    });
-    setTab("Completed");
+  const load = () => {
+    if (!isAuthed) return;
+    api.myBookings(token).then((res) => setBookings(res.bookings)).catch(() => setBookings([]));
+  };
+  useEffect(load, [isAuthed, token]);
+
+  const live = bookings !== null;
+
+  const jobsByTab = live
+    ? {
+        pending: bookings.filter((b) => b.status === "pending").map((b) => ({ id: b.id, customer: b.customerName, time: `${b.date} ${b.time}`, detail: b.detail })),
+        accepted: bookings.filter((b) => b.status === "accepted").map((b) => ({ id: b.id, customer: b.customerName, time: `${b.date} ${b.time}`, detail: b.detail })),
+        completed: bookings.filter((b) => b.status === "completed").map((b) => ({ id: b.id, customer: b.customerName, time: `${b.date} ${b.time}`, detail: b.detail, amount: "—" })),
+      }
+    : mockJobs;
+
+  const markComplete = async (id) => {
+    if (!live) return;
+    setBusy(id);
+    try {
+      await api.updateBooking(id, "completed", token);
+      load();
+      setTab("Completed");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(null);
+    }
   };
 
-  const list = jobs[tab.toLowerCase()];
+  const list = jobsByTab[tab.toLowerCase()];
 
   return (
     <div className="bg-white flex flex-col h-full w-full">
@@ -49,12 +74,12 @@ export default function ArtisanJobs() {
                 {tab === "Accepted" && (
                   <div className="flex gap-3">
                     <button onClick={() => navigate("/chat")} className="flex-1 h-11 rounded-[10px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold">💬 Message</button>
-                    <button onClick={() => markComplete(j.id)} className="flex-1 h-11 rounded-[10px] bg-[#FF7A00] text-white text-sm font-semibold">Mark Complete</button>
+                    <button disabled={busy === j.id} onClick={() => markComplete(j.id)} className="flex-1 h-11 rounded-[10px] bg-[#FF7A00] text-white text-sm font-semibold disabled:opacity-50">Mark Complete</button>
                   </div>
                 )}
                 {tab === "Completed" && (
                   <div className="flex items-center justify-between bg-[#F5F6F8] rounded-xl px-4 h-11">
-                    <span className="text-[#6B7280] text-sm">Paid</span>
+                    <span className="text-[#6B7280] text-sm">Status</span>
                     <span className="text-[#1F2937] text-sm font-semibold">{j.amount}</span>
                   </div>
                 )}
@@ -97,7 +122,7 @@ export default function ArtisanJobs() {
                     {tab === "Accepted" && (
                       <>
                         <button onClick={() => navigate("/chat")} className="h-9 px-4 rounded-[8px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold">Message</button>
-                        <button onClick={() => markComplete(j.id)} className="h-9 px-4 rounded-[8px] bg-[#FF7A00] text-white text-sm font-semibold">Mark Complete</button>
+                        <button disabled={busy === j.id} onClick={() => markComplete(j.id)} className="h-9 px-4 rounded-[8px] bg-[#FF7A00] text-white text-sm font-semibold disabled:opacity-50">Mark Complete</button>
                       </>
                     )}
                     {tab === "Completed" && <span className="text-[#1F2937] text-sm font-semibold">{j.amount}</span>}

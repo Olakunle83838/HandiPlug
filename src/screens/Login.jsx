@@ -1,31 +1,66 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, StatusSpace, TextInput } from "../components/UI";
 import Logo from "../components/Logo";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    setError("");
+    if (!email || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const user = await login(email, password);
+      if (user.role === "admin") navigate("/admin");
+      else if (user.role === "artisan") navigate("/artisan/dashboard");
+      else navigate("/home");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const Form = () => (
+    <>
+      <TextInput label="Email or Phone Number" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <TextInput label="Password" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+      <div className="flex justify-end -mt-2">
+        <button onClick={() => navigate("/forgot-password")} className="text-[#6B7280] text-sm">Forgot Password?</button>
+      </div>
+      {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+    </>
+  );
+
   return (
     <div className="bg-white flex flex-col h-full w-full">
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
         <StatusSpace />
         <div className="flex-1 flex flex-col gap-4 px-6 pt-[39px]">
-          <h1 className="text-[#1F2937] text-[32px] font-bold leading-[38.4px]">
-            Welcome Back
-          </h1>
+          <h1 className="text-[#1F2937] text-[32px] font-bold leading-[38.4px]">Welcome Back</h1>
           <div className="h-2" />
-          <TextInput label="Email or Phone Number" placeholder="you@example.com" type="text" />
-          <TextInput label="Password" placeholder="••••••••" type="password" />
-          <div className="flex justify-end -mt-2">
-            <button className="text-[#6B7280] text-sm">Forgot Password?</button>
-          </div>
+          <Form />
           <div className="h-2" />
-          <Button onClick={() => navigate("/home")}>Login</Button>
+          <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
           <div className="flex gap-1.5 items-center justify-center pt-2">
             <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
-            <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">
-              Create Account
-            </button>
+            <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">Create Account</button>
+          </div>
+          <div className="border-t border-[#E5E7EB] mt-4 pt-4">
+            <p className="text-[#9CA3AF] text-xs text-center">
+              Demo logins — Admin: admin@handiplug.ng / admin1234 · Artisan: ifeanyi@handiplug.ng / password123
+            </p>
           </div>
         </div>
       </div>
@@ -42,17 +77,16 @@ export default function Login() {
         <div className="w-1/2 flex items-center justify-center px-16">
           <div className="w-full max-w-[400px] flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-[32px] font-bold">Welcome Back</h1>
-            <TextInput label="Email or Phone Number" placeholder="you@example.com" type="text" />
-            <TextInput label="Password" placeholder="••••••••" type="password" />
-            <div className="flex justify-end -mt-2">
-              <button className="text-[#6B7280] text-sm">Forgot Password?</button>
-            </div>
-            <Button onClick={() => navigate("/home")}>Log In</Button>
+            <Form />
+            <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Log In"}</Button>
             <div className="flex gap-1.5 items-center justify-center pt-2">
               <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
-              <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">
-                Sign Up
-              </button>
+              <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">Sign Up</button>
+            </div>
+            <div className="border-t border-[#E5E7EB] mt-2 pt-4">
+              <p className="text-[#9CA3AF] text-xs text-center">
+                Demo logins — Admin: admin@handiplug.ng / admin1234 · Artisan: ifeanyi@handiplug.ng / password123
+              </p>
             </div>
           </div>
         </div>

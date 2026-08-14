@@ -1,17 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Card, VerifiedBadge } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import { Table, THead, TRow, TCell } from "../components/DesktopExtras";
 import { Avatar as MobileAvatar } from "../components/UI";
-import { newRequests } from "../data/mockData";
+import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+import { newRequests as mockRequests } from "../data/mockData";
 
 export default function ArtisanDashboard() {
   const navigate = useNavigate();
-  const [requests, setRequests] = useState(newRequests);
+  const { token, user, isAuthed } = useAuth();
+  const [bookings, setBookings] = useState(null);
+  const [busy, setBusy] = useState(null);
 
-  const respond = (id) => setRequests((r) => r.filter((req) => req.id !== id));
+  const load = () => {
+    if (!isAuthed) return;
+    api.myBookings(token).then((res) => setBookings(res.bookings)).catch(() => setBookings([]));
+  };
+  useEffect(load, [isAuthed, token]);
+
+  const live = bookings !== null;
+  const pending = live ? bookings.filter((b) => b.status === "pending") : mockRequests.map((r) => ({ id: r.id, customerName: r.customer, time: r.time, detail: r.detail }));
+
+  const respond = async (id, status) => {
+    if (!live) return; // demo mode, no backend to call
+    setBusy(id);
+    try {
+      await api.updateBooking(id, status, token);
+      load();
+      if (status === "accepted") navigate("/artisan/jobs");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="bg-white flex flex-col h-full w-full">
@@ -23,8 +48,8 @@ export default function ArtisanDashboard() {
             <div>
               <p className="text-[#6B7280] text-sm">Welcome back 👋</p>
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-[#1F2937] text-xl font-bold">Ifeanyi Obi</p>
-                <VerifiedBadge />
+                <p className="text-[#1F2937] text-xl font-bold">{user?.fullName || "Ifeanyi Obi"}</p>
+                {(user?.verified ?? true) && <VerifiedBadge />}
               </div>
             </div>
             <button onClick={() => navigate("/notifications")} className="relative text-2xl text-[#1F2937]">🔔</button>
@@ -32,7 +57,7 @@ export default function ArtisanDashboard() {
           <div className="flex gap-3 px-6 pt-5">
             <Card className="flex-1 flex flex-col gap-1">
               <p className="text-[#6B7280] text-xs font-medium">Pending</p>
-              <p className="text-[#1F2937] text-2xl font-bold">{requests.length}</p>
+              <p className="text-[#1F2937] text-2xl font-bold">{pending.length}</p>
             </Card>
             <Card className="flex-1 flex flex-col gap-1">
               <p className="text-[#6B7280] text-xs font-medium">This Month</p>
@@ -41,17 +66,17 @@ export default function ArtisanDashboard() {
           </div>
           <div className="px-6 pt-6 pb-4 flex flex-col gap-2.5">
             <p className="text-[#6B7280] text-xs font-bold tracking-[0.2px]">NEW BOOKING REQUESTS</p>
-            {requests.length === 0 && <p className="text-[#6B7280] text-sm text-center pt-6">No new requests right now.</p>}
-            {requests.map((r) => (
+            {pending.length === 0 && <p className="text-[#6B7280] text-sm text-center pt-6">No new requests right now.</p>}
+            {pending.map((r) => (
               <Card key={r.id} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[#1F2937] text-sm font-semibold">{r.customer}</p>
+                  <p className="text-[#1F2937] text-sm font-semibold">{r.customerName}</p>
                   <span className="text-[#6B7280] text-xs">{r.time}</span>
                 </div>
                 <p className="text-[#6B7280] text-sm">{r.detail}</p>
                 <div className="flex gap-3">
-                  <button onClick={() => respond(r.id)} className="flex-1 h-11 rounded-[10px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold">Decline</button>
-                  <button onClick={() => { respond(r.id); navigate("/artisan/jobs"); }} className="flex-1 h-11 rounded-[10px] bg-[#FF7A00] text-white text-sm font-semibold">Accept</button>
+                  <button disabled={busy === r.id} onClick={() => respond(r.id, "declined")} className="flex-1 h-11 rounded-[10px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold disabled:opacity-50">Decline</button>
+                  <button disabled={busy === r.id} onClick={() => respond(r.id, "accepted")} className="flex-1 h-11 rounded-[10px] bg-[#FF7A00] text-white text-sm font-semibold disabled:opacity-50">Accept</button>
                 </div>
               </Card>
             ))}
@@ -67,15 +92,15 @@ export default function ArtisanDashboard() {
           <div className="max-w-[1300px] mx-auto flex flex-col gap-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[#1F2937] text-[28px] font-bold">Welcome back, Ifeanyi 👋</h1>
+                <h1 className="text-[#1F2937] text-[28px] font-bold">Welcome back, {(user?.fullName || "Ifeanyi").split(" ")[0]} 👋</h1>
                 <p className="text-[#6B7280] text-base mt-1">Here&apos;s how your business is doing.</p>
               </div>
-              <VerifiedBadge />
+              {(user?.verified ?? true) && <VerifiedBadge />}
             </div>
 
             <div className="grid grid-cols-3 gap-6">
               <Card className="flex flex-col items-center gap-1 py-6">
-                <p className="text-[#1F2937] text-3xl font-bold">{requests.length + 11}</p>
+                <p className="text-[#1F2937] text-3xl font-bold">{pending.length}</p>
                 <p className="text-[#6B7280] text-sm">Pending Requests</p>
               </Card>
               <Card className="flex flex-col items-center gap-1 py-6">
@@ -83,7 +108,7 @@ export default function ArtisanDashboard() {
                 <p className="text-[#6B7280] text-sm">Earnings This Month</p>
               </Card>
               <Card className="flex flex-col items-center gap-1 py-6">
-                <p className="text-[#1F2937] text-3xl font-bold">4.9 ★</p>
+                <p className="text-[#1F2937] text-3xl font-bold">{user?.rating || "4.9"} ★</p>
                 <p className="text-[#6B7280] text-sm">Average Rating</p>
               </Card>
             </div>
@@ -100,32 +125,22 @@ export default function ArtisanDashboard() {
                     { label: "", className: "flex-1" },
                   ]}
                 />
-                <TRow>
-                  <TCell className="w-[280px] flex items-center gap-3">
-                    <MobileAvatar size={32} />
-                    <span className="text-[#1F2937] text-sm font-medium">Chukwudi Divine</span>
-                  </TCell>
-                  <TCell className="w-[260px] text-[#1F2937] text-sm">Rewire kitchen sockets</TCell>
-                  <TCell className="w-[170px] text-[#1F2937] text-sm">Thu, 2:00 PM</TCell>
-                  <TCell className="w-[170px] text-[#1F2937] text-sm">Lekki Phase 1</TCell>
-                  <TCell className="flex-1 flex gap-3 justify-end">
-                    <button className="h-9 px-4 rounded-[8px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold">Decline</button>
-                    <button onClick={() => navigate("/artisan/jobs")} className="h-9 px-4 rounded-[8px] bg-[#FF7A00] text-white text-sm font-semibold">Accept</button>
-                  </TCell>
-                </TRow>
-                <TRow>
-                  <TCell className="w-[280px] flex items-center gap-3">
-                    <MobileAvatar size={32} />
-                    <span className="text-[#1F2937] text-sm font-medium">Amaka O.</span>
-                  </TCell>
-                  <TCell className="w-[260px] text-[#1F2937] text-sm">Fix tripping breaker</TCell>
-                  <TCell className="w-[170px] text-[#1F2937] text-sm">Fri, 11:00 AM</TCell>
-                  <TCell className="w-[170px] text-[#1F2937] text-sm">Ikoyi</TCell>
-                  <TCell className="flex-1 flex gap-3 justify-end">
-                    <button className="h-9 px-4 rounded-[8px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold">Decline</button>
-                    <button onClick={() => navigate("/artisan/jobs")} className="h-9 px-4 rounded-[8px] bg-[#FF7A00] text-white text-sm font-semibold">Accept</button>
-                  </TCell>
-                </TRow>
+                {pending.length === 0 && <div className="text-[#6B7280] text-sm text-center py-8">No new requests right now.</div>}
+                {pending.map((r) => (
+                  <TRow key={r.id}>
+                    <TCell className="w-[280px] flex items-center gap-3">
+                      <MobileAvatar size={32} />
+                      <span className="text-[#1F2937] text-sm font-medium">{r.customerName}</span>
+                    </TCell>
+                    <TCell className="w-[260px] text-[#1F2937] text-sm">{r.detail}</TCell>
+                    <TCell className="w-[170px] text-[#1F2937] text-sm">{r.date} {r.time}</TCell>
+                    <TCell className="w-[170px] text-[#1F2937] text-sm">{r.location || "—"}</TCell>
+                    <TCell className="flex-1 flex gap-3 justify-end">
+                      <button disabled={busy === r.id} onClick={() => respond(r.id, "declined")} className="h-9 px-4 rounded-[8px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold disabled:opacity-50">Decline</button>
+                      <button disabled={busy === r.id} onClick={() => respond(r.id, "accepted")} className="h-9 px-4 rounded-[8px] bg-[#FF7A00] text-white text-sm font-semibold disabled:opacity-50">Accept</button>
+                    </TCell>
+                  </TRow>
+                ))}
               </Table>
             </div>
           </div>

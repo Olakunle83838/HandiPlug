@@ -4,11 +4,16 @@ import { StatusSpace, Card, Avatar, VerifiedBadge, Stars } from "../components/U
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import { CategoryTile, ArtisanCardDesktop } from "../components/DesktopExtras";
-import { topArtisans, trades } from "../data/mockData";
+import { trades } from "../data/mockData";
+import { useArtisans } from "../lib/useArtisans";
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
+  const { artisans: topArtisans } = useArtisans({ verified: "true" });
+  const firstName = user?.fullName?.split(" ")[0] || "there";
 
   return (
     <div className="bg-white flex flex-col h-full w-full">
@@ -20,7 +25,7 @@ export default function Home() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[#F5F6F8] text-sm">Good Morning 👋</p>
-                <p className="text-[#F5F6F8] text-xl font-semibold mt-1">Chukwudi</p>
+                <p className="text-[#F5F6F8] text-xl font-semibold mt-1">{firstName}</p>
               </div>
               <button onClick={() => navigate("/notifications")} className="relative text-white text-2xl">
                 🔔
@@ -65,7 +70,7 @@ export default function Home() {
               <button onClick={() => navigate("/search")} className="text-[#FF7A00] text-sm font-semibold">See all</button>
             </div>
             {topArtisans.map((a) => (
-              <Card key={a.id} className="flex items-center gap-3.5">
+              <Card key={a.id} className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigate(`/artisan-profile?id=${a.id}`)}>
                 <Avatar />
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
@@ -90,7 +95,7 @@ export default function Home() {
         <TopNav variant="app" search={search} onSearchChange={setSearch} />
         <div className="flex-1 overflow-y-auto">
           <div className="px-12 pt-8 max-w-[1440px] mx-auto">
-            <h1 className="text-[#1F2937] text-[28px] font-bold">Good morning, Chukwudi 👋</h1>
+            <h1 className="text-[#1F2937] text-[28px] font-bold">Good morning, {firstName} 👋</h1>
             <p className="text-[#6B7280] text-base mt-1">Find a verified artisan for your next job.</p>
           </div>
 
@@ -107,7 +112,7 @@ export default function Home() {
             <p className="text-[#6B7280] text-xs font-bold tracking-[0.2px] mb-4">RECOMMENDED FOR YOU</p>
             <div className="flex gap-6 flex-wrap">
               {topArtisans.map((a) => (
-                <ArtisanCardDesktop key={a.id} artisan={a} />
+                <ArtisanCardDesktop key={a.id} artisan={a} onView={() => navigate(`/artisan-profile?id=${a.id}`)} />
               ))}
             </div>
           </div>

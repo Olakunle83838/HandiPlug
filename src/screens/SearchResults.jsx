@@ -4,7 +4,7 @@ import { StatusSpace, Card, Avatar, VerifiedBadge, Stars, Chip, Label } from "..
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import SidebarDesktop from "../components/SidebarDesktop";
-import { searchResults } from "../data/mockData";
+import { useArtisans, mockSearch } from "../lib/useArtisans";
 
 const FILTERS = ["Verified", "Rating 4+", "Price", "Nearby"];
 
@@ -12,6 +12,7 @@ export default function SearchResults() {
   const navigate = useNavigate();
   const [active, setActive] = useState([]);
   const [search, setSearch] = useState("Electrician · Lekki");
+  const { artisans: searchResults, loading } = useArtisans({}, mockSearch);
 
   const toggle = (f) =>
     setActive((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
@@ -38,7 +39,7 @@ export default function SearchResults() {
           <Label>3 Electricians near Lekki</Label>
           <div className="flex flex-col gap-3 pb-4">
             {searchResults.map((a) => (
-              <Card key={a.id} className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigate("/artisan-profile")}>
+              <Card key={a.id} className="flex items-center gap-3.5 cursor-pointer" onClick={() => navigate(`/artisan-profile?id=${a.id}`)}>
                 <Avatar size={56} />
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
@@ -118,7 +119,7 @@ export default function SearchResults() {
                   <div className="flex items-center gap-6">
                     <span className="text-[#1F2937] font-semibold">{a.price}</span>
                     <button
-                      onClick={() => navigate("/artisan-profile")}
+                      onClick={() => navigate(`/artisan-profile?id=${a.id}`)}
                       className="h-[34px] px-4 rounded-[8px] border border-[#E5E7EB] text-[#1F2937] text-sm font-semibold hover:bg-[#F5F6F8]"
                     >
                       View Profile

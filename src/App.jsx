@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { BrandProvider } from "./context/BrandContext";
 
 import Splash from "./screens/Splash";
 import Onboarding from "./screens/Onboarding";
 import Login from "./screens/Login";
 import Signup from "./screens/Signup";
+import ForgotPassword from "./screens/ForgotPassword";
 import OtpVerification from "./screens/OtpVerification";
 import Home from "./screens/Home";
 import SearchResults from "./screens/SearchResults";
@@ -24,6 +27,12 @@ import ArtisanDashboard from "./screens/ArtisanDashboard";
 import ArtisanJobs from "./screens/ArtisanJobs";
 import ArtisanProfileHome from "./screens/ArtisanProfileHome";
 import AdminModeration from "./screens/AdminModeration";
+import BrandSettings from "./screens/BrandSettings";
+import SavedArtisans from "./screens/SavedArtisans";
+import MyReviews from "./screens/MyReviews";
+import Settings from "./screens/Settings";
+import PayoutDetails from "./screens/PayoutDetails";
+import AdminUsers from "./screens/AdminUsers";
 
 // Wraps every screen. On mobile it's a phone-sized frame; from the md
 // breakpoint up it becomes a full-width desktop layout (no frame, no
@@ -40,42 +49,53 @@ function PhoneFrame({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <PhoneFrame>
-        <Routes>
-          <Route path="/" element={<Navigate to="/splash" replace />} />
-          <Route path="/splash" element={<Splash />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/otp" element={<OtpVerification />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/artisan-profile" element={<ArtisanProfile />} />
-          <Route path="/booking-request" element={<BookingRequest />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-          <Route path="/bookings" element={<MyBookings />} />
-          <Route path="/profile" element={<CustomerProfile />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/rating" element={<Rating />} />
-          <Route path="/notifications" element={<Notifications />} />
+    <BrandProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <PhoneFrame>
+            <Routes>
+              <Route path="/" element={<Navigate to="/splash" replace />} />
+              <Route path="/splash" element={<Splash />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/otp" element={<OtpVerification />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="/artisan-profile" element={<ArtisanProfile />} />
+              <Route path="/booking-request" element={<BookingRequest />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+              <Route path="/bookings" element={<MyBookings />} />
+              <Route path="/profile" element={<CustomerProfile />} />
+              <Route path="/payment" element={<Payment />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/rating" element={<Rating />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/brand" element={<BrandSettings />} />
+              <Route path="/saved-artisans" element={<SavedArtisans />} />
+              <Route path="/my-reviews" element={<MyReviews />} />
+              <Route path="/settings" element={<Settings />} />
 
-          {/* Artisan journey */}
-          <Route path="/artisan/build-profile" element={<ArtisanBuildProfile />} />
-          <Route path="/artisan/portfolio" element={<ArtisanPortfolioUpload />} />
-          <Route path="/artisan/kyc" element={<ArtisanKyc />} />
-          <Route path="/artisan/dashboard" element={<ArtisanDashboard />} />
-          <Route path="/artisan/jobs" element={<ArtisanJobs />} />
-          <Route path="/artisan/profile" element={<ArtisanProfileHome />} />
+              {/* Artisan journey */}
+              <Route path="/artisan/build-profile" element={<ArtisanBuildProfile />} />
+              <Route path="/artisan/portfolio" element={<ArtisanPortfolioUpload />} />
+              <Route path="/artisan/kyc" element={<ArtisanKyc />} />
+              <Route path="/artisan/dashboard" element={<ArtisanDashboard />} />
+              <Route path="/artisan/jobs" element={<ArtisanJobs />} />
+              <Route path="/artisan/profile" element={<ArtisanProfileHome />} />
+              <Route path="/artisan/payout" element={<PayoutDetails />} />
 
-          {/* Admin */}
-          <Route path="/admin" element={<AdminModeration />} />
+              {/* Admin */}
+              <Route path="/admin" element={<AdminModeration />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
 
-          <Route path="*" element={<Navigate to="/splash" replace />} />
-        </Routes>
-      </PhoneFrame>
-    </BrowserRouter>
+              <Route path="*" element={<Navigate to="/splash" replace />} />
+            </Routes>
+          </PhoneFrame>
+        </BrowserRouter>
+      </AuthProvider>
+    </BrandProvider>
   );
 }

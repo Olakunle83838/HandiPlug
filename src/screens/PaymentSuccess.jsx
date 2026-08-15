@@ -1,9 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { StatusSpace, Button } from "../components/UI";
 import TopNav from "../components/TopNav";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const artisanName = params.get("artisanName") || "the artisan";
+  const firstName = artisanName.split(" ")[0];
 
   const Card = () => (
     <div className="border border-[#E5E7EB] rounded-2xl w-full p-8 flex flex-col items-center gap-5 max-w-[500px]">
@@ -12,7 +15,7 @@ export default function PaymentSuccess() {
       </div>
       <h1 className="text-[#1F2937] text-2xl font-bold">Payment successful</h1>
       <p className="text-[#6B7280] text-sm text-center">
-        &ldquo;Money don release to Musa since job don complete well well. E don enter him wallet&rdquo;
+        &ldquo;Money don release to {firstName} since job don complete well well. E don enter dem wallet&rdquo;
       </p>
       <div className="bg-[#F5F6F8] rounded-xl w-full p-4 flex flex-col gap-2">
         <div className="flex justify-between text-sm">

@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { BrandProvider } from "./context/BrandContext";
 
 import Splash from "./screens/Splash";
 import Onboarding from "./screens/Onboarding";
@@ -27,7 +26,6 @@ import ArtisanDashboard from "./screens/ArtisanDashboard";
 import ArtisanJobs from "./screens/ArtisanJobs";
 import ArtisanProfileHome from "./screens/ArtisanProfileHome";
 import AdminModeration from "./screens/AdminModeration";
-import BrandSettings from "./screens/BrandSettings";
 import SavedArtisans from "./screens/SavedArtisans";
 import MyReviews from "./screens/MyReviews";
 import Settings from "./screens/Settings";
@@ -49,11 +47,10 @@ function PhoneFrame({ children }) {
 
 export default function App() {
   return (
-    <BrandProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <PhoneFrame>
-            <Routes>
+    <AuthProvider>
+      <BrowserRouter>
+        <PhoneFrame>
+          <Routes>
               <Route path="/" element={<Navigate to="/splash" replace />} />
               <Route path="/splash" element={<Splash />} />
               <Route path="/onboarding" element={<Onboarding />} />
@@ -73,7 +70,6 @@ export default function App() {
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/rating" element={<Rating />} />
               <Route path="/notifications" element={<Notifications />} />
-              <Route path="/brand" element={<BrandSettings />} />
               <Route path="/saved-artisans" element={<SavedArtisans />} />
               <Route path="/my-reviews" element={<MyReviews />} />
               <Route path="/settings" element={<Settings />} />
@@ -96,6 +92,5 @@ export default function App() {
           </PhoneFrame>
         </BrowserRouter>
       </AuthProvider>
-    </BrandProvider>
   );
 }

@@ -52,7 +52,7 @@ export default function OtpVerification() {
           {OtpBoxes({})}
           <div className="flex gap-1.5 items-center">
             <span className="text-[#6B7280] text-sm">Didn&apos;t get a code?</span>
-            <button className="text-[#0F2A44] text-sm font-semibold">Resend Code</button>
+            <button className="text-[#1C4CD1] text-sm font-semibold">Resend Code</button>
           </div>
         </div>
         <div className="p-6">
@@ -62,7 +62,7 @@ export default function OtpVerification() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:h-full md:w-full">
-        <div className="w-1/2 bg-[#0F2A44] flex flex-col justify-center px-16 gap-6">
+        <div className="w-1/2 bg-[#1C4CD1] flex flex-col justify-center px-16 gap-6">
           <Logo size={56} wordmarkClass="text-white" />
           <div className="h-[280px] rounded-2xl bg-white/10" />
           <p className="text-white text-2xl font-semibold leading-snug max-w-[420px]">
@@ -79,7 +79,7 @@ export default function OtpVerification() {
             {OtpBoxes({size: 56})}
             <div className="flex gap-1.5 items-center">
               <span className="text-[#6B7280] text-sm">Didn&apos;t get a code?</span>
-              <button className="text-[#0F2A44] text-sm font-semibold">Resend Code</button>
+              <button className="text-[#1C4CD1] text-sm font-semibold">Resend Code</button>
             </div>
             <Button onClick={goNext}>Verify &amp; Continue</Button>
           </div>

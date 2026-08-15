@@ -55,7 +55,7 @@ export default function Login() {
           <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
           <div className="flex gap-1.5 items-center justify-center pt-2">
             <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
-            <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">Create Account</button>
+            <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Create Account</button>
           </div>
           <div className="border-t border-[#E5E7EB] mt-4 pt-4">
             <p className="text-[#9CA3AF] text-xs text-center">
@@ -67,7 +67,7 @@ export default function Login() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:h-full md:w-full">
-        <div className="w-1/2 bg-[#0F2A44] flex flex-col justify-center px-16 gap-6">
+        <div className="w-1/2 bg-[#1C4CD1] flex flex-col justify-center px-16 gap-6">
           <Logo size={56} wordmarkClass="text-white" />
           <div className="h-[280px] rounded-2xl bg-white/10" />
           <p className="text-white text-2xl font-semibold leading-snug max-w-[420px]">
@@ -81,7 +81,7 @@ export default function Login() {
             <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Log In"}</Button>
             <div className="flex gap-1.5 items-center justify-center pt-2">
               <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
-              <button onClick={() => navigate("/signup")} className="text-[#0F2A44] text-sm font-semibold">Sign Up</button>
+              <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Sign Up</button>
             </div>
             <div className="border-t border-[#E5E7EB] mt-2 pt-4">
               <p className="text-[#9CA3AF] text-xs text-center">

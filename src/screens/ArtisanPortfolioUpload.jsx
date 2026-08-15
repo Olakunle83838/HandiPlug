@@ -9,7 +9,7 @@ export default function ArtisanPortfolioUpload() {
     <button className={`border-2 border-dashed border-[#E5E7EB] rounded-2xl w-full flex flex-col items-center justify-center gap-3 text-center px-6 ${tall ? "h-[320px]" : "h-[270px]"}`}>
       <span className="text-4xl">🖼️</span>
       <span className="text-[#1F2937] text-sm font-semibold">Upload your image in SVG, PNG, JPEG</span>
-      <span className="bg-[#0F2A44] text-white text-sm font-semibold rounded-[10px] px-5 py-2">Upload</span>
+      <span className="bg-[#1C4CD1] text-white text-sm font-semibold rounded-[10px] px-5 py-2">Upload</span>
     </button>
   );
 

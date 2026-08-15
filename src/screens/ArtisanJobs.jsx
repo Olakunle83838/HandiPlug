@@ -59,7 +59,7 @@ export default function ArtisanJobs() {
           <h1 className="text-[#1F2937] text-2xl font-bold">Jobs</h1>
           <div className="flex gap-2">
             {TABS.map((t) => (
-              <button key={t} onClick={() => setTab(t)} className={`px-4 h-[33px] rounded-full text-sm font-medium whitespace-nowrap transition ${tab === t ? "bg-[#0F2A44] text-white" : "bg-[#F5F6F8] text-[#6B7280]"}`}>{t}</button>
+              <button key={t} onClick={() => setTab(t)} className={`px-4 h-[33px] rounded-full text-sm font-medium whitespace-nowrap transition ${tab === t ? "bg-[#1C4CD1] text-white" : "bg-[#F5F6F8] text-[#6B7280]"}`}>{t}</button>
             ))}
           </div>
           <div className="flex flex-col gap-3 pb-4">
@@ -98,7 +98,7 @@ export default function ArtisanJobs() {
             <h1 className="text-[#1F2937] text-2xl font-bold">Jobs</h1>
             <div className="flex gap-2">
               {TABS.map((t) => (
-                <button key={t} onClick={() => setTab(t)} className={`px-4 h-8 rounded-full text-sm font-medium whitespace-nowrap ${tab === t ? "bg-[#0F2A44] text-white" : "bg-[#F5F6F8] text-[#6B7280]"}`}>{t}</button>
+                <button key={t} onClick={() => setTab(t)} className={`px-4 h-8 rounded-full text-sm font-medium whitespace-nowrap ${tab === t ? "bg-[#1C4CD1] text-white" : "bg-[#F5F6F8] text-[#6B7280]"}`}>{t}</button>
               ))}
             </div>
             <Table>

@@ -4,8 +4,9 @@ import { topArtisans as mockTop, searchResults as mockSearch } from "../data/moc
 
 // Fetches artisans from the live backend. If the backend isn't running
 // (common when just previewing the frontend on its own), falls back to
-// the bundled mock data so screens still render something useful, and
-// flags `isLive: false` so callers/tests can tell the difference.
+// the bundled mock data — filtered client-side with the exact same rules
+// the backend uses, so category/search filters still work correctly even
+// without a server running.
 function normalize(a) {
   return {
     id: a.id,
@@ -21,8 +22,34 @@ function normalize(a) {
   };
 }
 
+function applyFiltersLocally(list, filters) {
+  let out = list;
+  if (filters.trade) {
+    out = out.filter((a) => a.trade?.toLowerCase() === String(filters.trade).toLowerCase());
+  }
+  if (filters.area) {
+    out = out.filter((a) => a.area?.toLowerCase().includes(String(filters.area).toLowerCase()));
+  }
+  if (filters.verified === "true") {
+    out = out.filter((a) => a.verified);
+  }
+  if (filters.minRating) {
+    out = out.filter((a) => (a.rating || 0) >= Number(filters.minRating));
+  }
+  if (filters.q) {
+    const needle = String(filters.q).toLowerCase();
+    out = out.filter(
+      (a) =>
+        a.name?.toLowerCase().includes(needle) ||
+        a.trade?.toLowerCase().includes(needle) ||
+        a.area?.toLowerCase().includes(needle)
+    );
+  }
+  return out;
+}
+
 export function useArtisans(filters = {}, fallback = mockTop) {
-  const [artisans, setArtisans] = useState(fallback);
+  const [artisans, setArtisans] = useState(() => applyFiltersLocally(fallback, filters));
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
 
@@ -38,7 +65,7 @@ export function useArtisans(filters = {}, fallback = mockTop) {
       })
       .catch(() => {
         if (cancelled) return;
-        setArtisans(fallback);
+        setArtisans(applyFiltersLocally(fallback, filters));
         setIsLive(false);
       })
       .finally(() => !cancelled && setLoading(false));

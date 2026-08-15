@@ -1,5 +1,5 @@
 // Shared design-system primitives for HandiPlug
-// Colors: navy #0F2A44 · orange #FF7A00 · text #1F2937 · caption #6B7280
+// Colors: navy #1C4CD1 · orange #FF7A00 · text #1F2937 · caption #6B7280
 // border #E5E7EB · surface #F5F6F8 · success #22C55E · star #FACC15
 
 export function StatusSpace() {
@@ -11,8 +11,8 @@ export function Button({ children, variant = "primary", className = "", ...props
     "h-[52px] w-full rounded-[10px] flex items-center justify-center font-bold text-[16px] transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
   const variants = {
     primary: "bg-[#FF7A00] text-white hover:bg-[#e66e00]",
-    dark: "bg-[#0F2A44] text-white hover:bg-[#0c2236]",
-    outline: "bg-white text-[#0F2A44] border border-[#E5E7EB] hover:bg-[#F5F6F8]",
+    dark: "bg-[#1C4CD1] text-white hover:bg-[#0c2236]",
+    outline: "bg-white text-[#1C4CD1] border border-[#E5E7EB] hover:bg-[#F5F6F8]",
   };
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...props}>
@@ -67,7 +67,7 @@ export function Chip({ children, active = false, onClick }) {
       onClick={onClick}
       className={`px-4 h-[33px] rounded-full text-sm font-medium whitespace-nowrap transition ${
         active
-          ? "bg-[#0F2A44] text-white"
+          ? "bg-[#1C4CD1] text-white"
           : "bg-[#F5F6F8] text-[#6B7280] hover:bg-[#e9ebef]"
       }`}
     >
@@ -120,7 +120,7 @@ export function TogglePill({ options, active, onChange }) {
           key={opt}
           onClick={() => onChange(opt)}
           className={`flex-1 h-[37px] rounded-full text-sm font-semibold transition ${
-            active === opt ? "bg-[#0F2A44] text-white" : "text-[#6B7280]"
+            active === opt ? "bg-[#1C4CD1] text-white" : "text-[#6B7280]"
           }`}
         >
           {opt}

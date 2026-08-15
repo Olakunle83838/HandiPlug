@@ -16,7 +16,7 @@ export default function SidebarDesktop({ title, links, sections }) {
         key={link.label}
         onClick={() => (link.onClick ? link.onClick() : link.path && navigate(link.path))}
         className={`w-full text-left h-[41px] px-3.5 rounded-[10px] text-sm font-medium transition ${
-          active ? "bg-[#0F2A44] text-white" : "text-[#1F2937] hover:bg-[#F5F6F8]"
+          active ? "bg-[#1C4CD1] text-white" : "text-[#1F2937] hover:bg-[#F5F6F8]"
         }`}
       >
         {link.label}

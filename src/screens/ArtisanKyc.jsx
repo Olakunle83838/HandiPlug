@@ -15,8 +15,8 @@ export default function ArtisanKyc() {
   const [ninNumber, setNinNumber] = useState("");
   const [file, setFile] = useState(null);
   const [selfie, setSelfie] = useState(null);
-  const [guarantor1, setGuarantor1] = useState({ name: "", phone: "" });
-  const [guarantor2, setGuarantor2] = useState({ name: "", phone: "" });
+  const [guarantor1Phone, setGuarantor1Phone] = useState("");
+  const [guarantor2Phone, setGuarantor2Phone] = useState("");
   const [uploaded, setUploaded] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,8 +40,8 @@ export default function ArtisanKyc() {
       setError("Choose an ID document first.");
       return;
     }
-    if (!guarantor1.name || !guarantor1.phone || !guarantor2.name || !guarantor2.phone) {
-      setError("HandiPlug requires 2 guarantors — please fill in both.");
+    if (!guarantor1Phone || !guarantor2Phone) {
+      setError("HandiPlug requires 2 guarantors — please fill in both phone numbers.");
       return;
     }
     setLoading(true);
@@ -51,10 +51,10 @@ export default function ArtisanKyc() {
       if (selfie) formData.append("selfie", selfie);
       formData.append("documentType", docType);
       formData.append("ninNumber", ninNumber);
-      formData.append("guarantor1Name", guarantor1.name);
-      formData.append("guarantor1Phone", guarantor1.phone);
-      formData.append("guarantor2Name", guarantor2.name);
-      formData.append("guarantor2Phone", guarantor2.phone);
+      formData.append("guarantor1Name", "Not collected");
+      formData.append("guarantor1Phone", guarantor1Phone);
+      formData.append("guarantor2Name", "Not collected");
+      formData.append("guarantor2Phone", guarantor2Phone);
       const res = await api.submitKyc(formData, token);
       setUploaded((u) => [...u, res.submission]);
       setFile(null);
@@ -117,19 +117,8 @@ export default function ArtisanKyc() {
 
   const GuarantorFields = () => (
     <div className="flex flex-col gap-4">
-      <Label>Guarantors (2 required)</Label>
-      <p className="text-[#9CA3AF] text-xs -mt-2">
-        HandiPlug verifies every artisan with NIN, facial verification, and 2
-        guarantors who can vouch for you.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TextInput label="Guarantor 1 Name" placeholder="Full name" value={guarantor1.name} onChange={(e) => setGuarantor1((g) => ({ ...g, name: e.target.value }))} />
-        <TextInput label="Guarantor 1 Phone" placeholder="+234 800 000 0000" value={guarantor1.phone} onChange={(e) => setGuarantor1((g) => ({ ...g, phone: e.target.value }))} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TextInput label="Guarantor 2 Name" placeholder="Full name" value={guarantor2.name} onChange={(e) => setGuarantor2((g) => ({ ...g, name: e.target.value }))} />
-        <TextInput label="Guarantor 2 Phone" placeholder="+234 800 000 0000" value={guarantor2.phone} onChange={(e) => setGuarantor2((g) => ({ ...g, phone: e.target.value }))} />
-      </div>
+      <TextInput label="Guarantor 1 — phone number" placeholder="080X XXX XXXX" value={guarantor1Phone} onChange={(e) => setGuarantor1Phone(e.target.value)} />
+      <TextInput label="Guarantor 2 — phone number" placeholder="080X XXX XXXX" value={guarantor2Phone} onChange={(e) => setGuarantor2Phone(e.target.value)} />
     </div>
   );
 
@@ -156,11 +145,13 @@ export default function ArtisanKyc() {
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-2 flex flex-col gap-5 pb-4">
           <div>
-            <h1 className="text-[#1F2937] text-2xl font-bold">Verify Your Identity</h1>
-            <p className="text-[#6B7280] text-sm mt-2">
-              HandiPlug verifies every artisan with your NIN, a facial verification
-              selfie, and 2 guarantors — this is what makes the Verified Badge mean
-              something to customers.
+            <h1 className="text-[#1F2937] text-2xl font-bold">Get verified</h1>
+          </div>
+          <div className="bg-[#EEF2FF] rounded-2xl p-4 flex gap-2.5">
+            <span className="text-[#1C4CD1] shrink-0">🛡️</span>
+            <p className="text-[#1C4CD1] text-sm leading-5">
+              Verified artisans get 3x more bookings. Verification takes NIN, a
+              valid ID, a quick facial scan, and 2 guarantors.
             </p>
           </div>
           {DocTypeField()}
@@ -169,9 +160,6 @@ export default function ArtisanKyc() {
           {SelfieZone()}
           {GuarantorFields()}
           {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-          <button onClick={doUpload} disabled={loading} className="h-11 rounded-[10px] bg-[#0F2A44] text-white text-sm font-semibold disabled:opacity-50">
-            {loading ? "Uploading..." : "Upload Document"}
-          </button>
           {uploaded.length > 0 && (
             <div className="flex flex-col gap-2">
               <Label>Uploaded documents</Label>
@@ -180,7 +168,13 @@ export default function ArtisanKyc() {
           )}
         </div>
         <div className="p-6">
-          <Button onClick={() => navigate("/artisan/dashboard")}>Continue to Dashboard</Button>
+          {uploaded.length > 0 ? (
+            <Button onClick={() => navigate("/artisan/dashboard")}>Continue to Dashboard</Button>
+          ) : (
+            <Button onClick={doUpload} disabled={loading}>
+              {loading ? "Submitting..." : "🛡️ Submit for Review"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -193,17 +187,13 @@ export default function ArtisanKyc() {
         <div className="flex-1 overflow-y-auto px-12 py-10">
           <div className="flex gap-16 max-w-[1300px] mx-auto">
             <div className="w-[340px] shrink-0 flex flex-col gap-5">
-              <h1 className="text-[#1F2937] text-2xl font-bold">Verify Your Identity</h1>
-              <p className="text-[#6B7280] text-sm">
-                HandiPlug verifies every artisan with NIN, facial verification, and
-                2 guarantors to unlock your Verified badge and start receiving
-                bookings from customers.
-              </p>
-              <div className="border border-[#E5E7EB] rounded-2xl p-4">
-                <p className="text-[#1F2937] text-sm font-semibold">What you'll need</p>
-                <p className="text-[#6B7280] text-sm mt-1">
-                  Your NIN, a valid ID document, a selfie for facial matching, and 2
-                  guarantors who can vouch for you.
+              <h1 className="text-[#1F2937] text-2xl font-bold">Get verified</h1>
+              <p className="text-[#6B7280] text-sm -mt-3">Verified artisans get 3x more bookings.</p>
+              <div className="bg-[#EEF2FF] rounded-2xl p-4 flex gap-2.5">
+                <span className="text-[#1C4CD1] shrink-0">🛡️</span>
+                <p className="text-[#1C4CD1] text-sm leading-5">
+                  Verification requires your NIN, a valid ID, a quick facial scan,
+                  and 2 guarantors.
                 </p>
               </div>
             </div>
@@ -216,20 +206,21 @@ export default function ArtisanKyc() {
               {SelfieZone()}
               {GuarantorFields()}
               {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-              <div className="flex gap-3">
-                <button onClick={doUpload} disabled={loading} className="h-11 px-6 rounded-[10px] bg-[#0F2A44] text-white text-sm font-semibold disabled:opacity-50">
-                  {loading ? "Uploading..." : "Upload Document"}
-                </button>
-              </div>
               {uploaded.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <Label>Uploaded documents</Label>
                   {uploaded.map((d) => <div key={d.id}>{DocRow({ doc: d })}</div>)}
                 </div>
               )}
-              <Button className="max-w-[220px]" onClick={() => navigate("/artisan/dashboard")}>
-                Continue to Dashboard
-              </Button>
+              {uploaded.length > 0 ? (
+                <Button className="max-w-[280px]" onClick={() => navigate("/artisan/dashboard")}>
+                  Continue to Dashboard
+                </Button>
+              ) : (
+                <Button className="max-w-[280px]" onClick={doUpload} disabled={loading}>
+                  {loading ? "Submitting..." : "🛡️ Submit for Review"}
+                </Button>
+              )}
             </div>
           </div>
         </div>

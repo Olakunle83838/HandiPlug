@@ -61,14 +61,14 @@ export default function Signup() {
           </Button>
           <div className="flex gap-1.5 items-center justify-center pt-1">
             <span className="text-[#6B7280] text-sm">Already have an account?</span>
-            <button onClick={() => navigate("/login")} className="text-[#0F2A44] text-sm font-semibold">Log In</button>
+            <button onClick={() => navigate("/login")} className="text-[#1C4CD1] text-sm font-semibold">Log In</button>
           </div>
         </div>
       </div>
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:h-full md:w-full">
-        <div className="w-1/2 bg-[#0F2A44] flex flex-col justify-center px-16 gap-6">
+        <div className="w-1/2 bg-[#1C4CD1] flex flex-col justify-center px-16 gap-6">
           <Logo size={56} wordmarkClass="text-white" />
           <div className="h-[280px] rounded-2xl bg-white/10" />
           <p className="text-white text-2xl font-semibold leading-snug max-w-[420px]">
@@ -94,7 +94,7 @@ export default function Signup() {
             </Button>
             <div className="flex gap-1.5 items-center justify-center pt-1">
               <span className="text-[#6B7280] text-sm">Already have an account?</span>
-              <button onClick={() => navigate("/login")} className="text-[#0F2A44] text-sm font-semibold">Log In</button>
+              <button onClick={() => navigate("/login")} className="text-[#1C4CD1] text-sm font-semibold">Log In</button>
             </div>
           </div>
         </div>

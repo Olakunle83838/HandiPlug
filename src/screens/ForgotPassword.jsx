@@ -57,7 +57,7 @@ export default function ForgotPassword() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:h-full md:w-full">
-        <div className="w-1/2 bg-[#0F2A44] flex flex-col justify-center px-16 gap-6">
+        <div className="w-1/2 bg-[#1C4CD1] flex flex-col justify-center px-16 gap-6">
           <Logo size={56} wordmarkClass="text-white" />
           <div className="h-[280px] rounded-2xl bg-white/10" />
         </div>
@@ -69,7 +69,7 @@ export default function ForgotPassword() {
             </p>
             {Form()}
             <Button onClick={submit} disabled={loading}>{loading ? "Sending..." : "Send Reset Link"}</Button>
-            <button onClick={() => navigate("/login")} className="text-[#0F2A44] text-sm font-semibold self-center">
+            <button onClick={() => navigate("/login")} className="text-[#1C4CD1] text-sm font-semibold self-center">
               Back to Log In
             </button>
           </div>

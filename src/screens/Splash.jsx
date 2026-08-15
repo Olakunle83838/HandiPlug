@@ -12,7 +12,7 @@ export default function Splash() {
   return (
     <div className="bg-white flex flex-col h-full w-full overflow-y-auto">
       {/* ---------- MOBILE ---------- */}
-      <div className="md:hidden bg-[#0F2A44] flex flex-col items-center h-full w-full">
+      <div className="md:hidden bg-[#1C4CD1] flex flex-col items-center h-full w-full">
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-10">
           <Logo size={160} showWordmark={false} />
           <p className="text-white/70 font-bold text-base text-center">
@@ -55,7 +55,7 @@ export default function Splash() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 h-[340px] rounded-3xl bg-gradient-to-br from-[#0F2A44] to-[#1E3A8A] flex items-center justify-center text-white/70 text-sm">
+            <div className="flex-1 h-[340px] rounded-3xl bg-gradient-to-br from-[#1C4CD1] to-[#1E3A8A] flex items-center justify-center text-white/70 text-sm">
               [ Hero Illustration — Artisans at Work ]
             </div>
           </div>

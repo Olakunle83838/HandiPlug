@@ -5,7 +5,7 @@ import { ArtisanCardDesktop } from "../components/DesktopExtras";
 import TopNav from "../components/TopNav";
 import Logo from "../components/Logo";
 import { trades, topArtisans } from "../data/mockData";
-import artisansImage from "./assets/artisans.jpg";
+import artisansImage from "../assets/artisans.jpg";
 
 export default function Splash() {
   const navigate = useNavigate();

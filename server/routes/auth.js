@@ -13,8 +13,11 @@ function publicUser(u) {
 router.post("/register", (req, res) => {
   const { fullName, email, phone, password, address, role, trade } = req.body;
 
-  if (!fullName || !email || !password || !role) {
-    return res.status(400).json({ error: "fullName, email, password and role are required" });
+  // The actual Signup screen only collects phone + password (see
+  // src/screens/Signup.jsx) — fullName/email are optional and can be
+  // filled in later from Settings. Phone is the required unique identifier.
+  if (!phone || !password || !role) {
+    return res.status(400).json({ error: "phone, password and role are required" });
   }
   if (!["customer", "artisan"].includes(role)) {
     return res.status(400).json({ error: "role must be 'customer' or 'artisan'" });
@@ -24,15 +27,19 @@ router.post("/register", (req, res) => {
   }
 
   const data = db.read();
-  const exists = data.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (exists) return res.status(409).json({ error: "An account with this email already exists" });
+  const phoneTaken = data.users.find((u) => u.phone && u.phone === phone);
+  if (phoneTaken) return res.status(409).json({ error: "An account with this phone number already exists" });
+  if (email) {
+    const emailTaken = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (emailTaken) return res.status(409).json({ error: "An account with this email already exists" });
+  }
 
   const user = {
     id: db.id(),
     role,
-    fullName,
-    email,
-    phone: phone || "",
+    fullName: fullName || "New User",
+    email: email || "",
+    phone,
     address: address || "",
     password: bcrypt.hashSync(password, 10),
     verified: false,
@@ -48,13 +55,16 @@ router.post("/register", (req, res) => {
 });
 
 router.post("/login", (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+  const { email, phone, password } = req.body;
+  const identifier = email || phone;
+  if (!identifier || !password) return res.status(400).json({ error: "Email/phone and password are required" });
 
   const data = db.read();
-  const user = data.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const user = data.users.find(
+    (u) => (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || (u.phone && u.phone === identifier)
+  );
   if (!user || !bcrypt.compareSync(password, user.password)) {
-    return res.status(401).json({ error: "Invalid email or password" });
+    return res.status(401).json({ error: "Invalid email/phone or password" });
   }
 
   const token = signToken(user);

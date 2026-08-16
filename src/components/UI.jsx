@@ -84,10 +84,14 @@ export function Label({ children }) {
   );
 }
 
-export function TextInput({ label, icon, ...props }) {
+export function TextInput({ label, icon, plainLabel = false, ...props }) {
   return (
     <div className="flex flex-col gap-2 w-full">
-      {label && <Label>{label}</Label>}
+      {label && (plainLabel ? (
+        <p className="text-[14px] font-medium text-[#1F2937]">{label}</p>
+      ) : (
+        <Label>{label}</Label>
+      ))}
       <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-[10px] h-[52px] px-[17px] w-full focus-within:border-[#FF7A00]">
         {icon && <span className="text-base shrink-0">{icon}</span>}
         <input
@@ -112,7 +116,26 @@ export function TopBar({ title, onBack }) {
   );
 }
 
-export function TogglePill({ options, active, onChange }) {
+export function TogglePill({ options, active, onChange, variant = "solid" }) {
+  if (variant === "chip") {
+    return (
+      <div className="bg-[#F3F4F6] rounded-full p-1 flex w-full">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onChange(opt)}
+            className={`flex-1 h-[37px] rounded-full text-sm transition ${
+              active === opt
+                ? "bg-white text-[#1C4CD1] font-semibold shadow-sm"
+                : "text-[#6B7280] font-medium"
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="bg-[#F5F6F8] rounded-full p-1 flex w-full">
       {options.map((opt) => (

@@ -1,6 +1,29 @@
 # HandiPlug — Full-Stack App (React + Express)
 
-## This update (read this first)
+## Latest update
+
+- **Signup and OTP screens now match your uploaded prototype pixel-for-
+  pixel.** I'd drifted from the design earlier (added Full Name/Email/
+  Address fields that were never in your Figma), and a leftover
+  `wordmarkClass` prop from an older version of `Logo` meant the desktop
+  side panel wasn't rendering the logo correctly. Both fixed — new shared
+  `AuthSidePanel` component keeps the blue panel (real logo, exact
+  headline/quote/copyright) pixel-consistent, and the form now only asks
+  for what your design actually asks for (role toggle, phone, password).
+- **Backend updated to match**: phone is now the primary signup
+  identifier (email is optional, added later from Settings). Login
+  accepts either email or phone — verified with curl: register by phone
+  → log in by phone → duplicate phone correctly rejected → existing
+  email-based demo accounts (admin, seeded artisans) still work
+  unchanged.
+- Only touched Signup + OTP as requested. `Login.jsx` and
+  `ForgotPassword.jsx` still have the same stale `wordmarkClass` prop and
+  the old-style panel — say the word if you want those brought in line
+  with the same `AuthSidePanel` component.
+
+---
+
+
 
 1. **Fixed the search/category bug.** Root cause: category tiles on Home
    navigated to `/search` with no information about which trade was

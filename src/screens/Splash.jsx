@@ -5,6 +5,7 @@ import { ArtisanCardDesktop } from "../components/DesktopExtras";
 import TopNav from "../components/TopNav";
 import Logo from "../components/Logo";
 import { trades, topArtisans } from "../data/mockData";
+import artisansImage from "./assets/artisans.jpg";
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -55,8 +56,12 @@ export default function Splash() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 h-[340px] rounded-3xl bg-gradient-to-br from-[#1C4CD1] to-[#1E3A8A] flex items-center justify-center text-white/70 text-sm">
-              [ Hero Illustration — Artisans at Work ]
+            <div className="flex-1 h-[340px] rounded-3xl overflow-hidden">
+              <img
+                src={artisansImage}
+                alt="Artisans at work"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
 

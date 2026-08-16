@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, StatusSpace, TextInput } from "../components/UI";
-import Logo from "../components/Logo";
+import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -33,8 +33,8 @@ export default function Login() {
 
   const Form = () => (
     <>
-      <TextInput label="Email or Phone Number" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <TextInput label="Password" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+      <TextInput plainLabel label="Email or Phone Number" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <TextInput plainLabel label="Password" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
       <div className="flex justify-end -mt-2">
         <button onClick={() => navigate("/forgot-password")} className="text-[#6B7280] text-sm">Forgot Password?</button>
       </div>
@@ -67,13 +67,7 @@ export default function Login() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:h-full md:w-full">
-        <div className="w-1/2 bg-[#1C4CD1] flex flex-col justify-center px-16 gap-6">
-          <Logo size={56} wordmarkClass="text-white" />
-          <div className="h-[280px] rounded-2xl bg-white/10" />
-          <p className="text-white text-2xl font-semibold leading-snug max-w-[420px]">
-            Verified artisans, Escrow-protected jobs. No wahala.
-          </p>
-        </div>
+        <AuthSidePanel />
         <div className="w-1/2 flex items-center justify-center px-16">
           <div className="w-full max-w-[400px] flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-[32px] font-bold">Welcome Back</h1>

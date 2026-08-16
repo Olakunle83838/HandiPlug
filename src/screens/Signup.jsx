@@ -86,7 +86,8 @@ export default function Signup() {
       />
 
       {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-        );
+    </> 
+  );
 
   return (
     <div className="bg-white flex flex-col h-full w-full">

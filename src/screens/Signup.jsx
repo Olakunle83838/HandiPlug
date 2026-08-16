@@ -8,7 +8,10 @@ export default function Signup() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [role, setRole] = useState("I need a service");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +37,43 @@ export default function Signup() {
   const Form = () => (
     <>
       <TogglePill variant="chip" options={["I need a service", "I offer a service"]} active={role} onChange={setRole} />
-      <TextInput plainLabel label="Phone number" icon="📞" placeholder="080X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <TextInput
+        plainLabel
+        label="Full name"
+        icon="👤"
+        placeholder="Enter your full name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        />
+
+      <TextInput
+        plainLabel
+        label="Email address"
+        icon="📧"
+        placeholder="example@email.com"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <TextInput
+        plainLabel
+        label="Phone number"
+        icon="📞"
+        placeholder="080X XXX XXXX"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+      />
+
+      <TextInput
+        plainLabel
+        label="Home address"
+        icon="🏠"
+        placeholder="Enter your home address"
+        value={homeAddress}
+        onChange={(e) => setHomeAddress(e.target.value)}
+      />
+
       <TextInput
         plainLabel
         label="Password"
@@ -45,9 +84,9 @@ export default function Signup() {
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
+
       {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-    </>
-  );
+        );
 
   return (
     <div className="bg-white flex flex-col h-full w-full">

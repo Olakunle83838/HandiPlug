@@ -10,12 +10,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\\s+/g, "_")}`),
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ok = ["image/png", "image/jpeg", "application/pdf"].includes(file.mimetype);
@@ -53,15 +49,32 @@ router.post(
     const selfieFile = req.files?.selfie?.[0];
 
     try {
+      // Upload ID Document to Supabase
+      const docFilename = `${Date.now()}-${documentFile.originalname.replace(/\s+/g, "_")}`;
+      const { error: docUploadError } = await supabase.storage
+        .from("kyc-documents")
+        .upload(docFilename, documentFile.buffer, { contentType: documentFile.mimetype });
+      if (docUploadError) throw new Error("Failed to upload document: " + docUploadError.message);
+
+      // Upload Selfie to Supabase (if provided)
+      let selfieFilename = null;
+      if (selfieFile) {
+        selfieFilename = `${Date.now()}-selfie-${selfieFile.originalname.replace(/\s+/g, "_")}`;
+        const { error: selfieUploadError } = await supabase.storage
+          .from("kyc-documents")
+          .upload(selfieFilename, selfieFile.buffer, { contentType: selfieFile.mimetype });
+        if (selfieUploadError) throw new Error("Failed to upload selfie: " + selfieUploadError.message);
+      }
+
       const submissionId = generateId();
       const submission = {
         id: submissionId,
         artisanId: req.auth.id,
         documentType: documentType || "Unspecified",
-        fileName: documentFile.filename,
+        fileName: docFilename,
         originalName: documentFile.originalname,
         ninNumber: ninNumber || null,
-        selfieFileName: selfieFile?.filename || null,
+        selfieFileName: selfieFilename,
         guarantors: [
           { name: guarantor1Name, phone: guarantor1Phone },
           { name: guarantor2Name, phone: guarantor2Phone },
@@ -76,7 +89,7 @@ router.post(
       res.status(201).json({ submission });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Server error" });
+      res.status(500).json({ error: error.message || "Server error" });
     }
   }
 );

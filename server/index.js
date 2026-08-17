@@ -37,7 +37,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || "Server error" });
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`HandiPlug API running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`HandiPlug API running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

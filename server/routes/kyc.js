@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { db } from "../db.js";
+import { supabase, generateId } from "../supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -12,7 +12,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\\s+/g, "_")}`),
 });
 const upload = multer({
   storage,
@@ -33,7 +33,7 @@ router.post(
   requireAuth,
   requireRole("artisan"),
   upload.fields([{ name: "document", maxCount: 1 }, { name: "selfie", maxCount: 1 }]),
-  (req, res) => {
+  async (req, res) => {
     const documentFile = req.files?.document?.[0];
     if (!documentFile) return res.status(400).json({ error: "No ID document uploaded" });
 
@@ -52,32 +52,48 @@ router.post(
 
     const selfieFile = req.files?.selfie?.[0];
 
-    const data = db.read();
-    const submission = {
-      id: db.id(),
-      artisanId: req.auth.id,
-      documentType: documentType || "Unspecified",
-      fileName: documentFile.filename,
-      originalName: documentFile.originalname,
-      ninNumber: ninNumber || "",
-      selfieFileName: selfieFile?.filename || null,
-      guarantors: [
-        { name: guarantor1Name, phone: guarantor1Phone },
-        { name: guarantor2Name, phone: guarantor2Phone },
-      ],
-      status: "pending",
-      submittedAt: new Date().toISOString(),
-    };
-    data.kycSubmissions.push(submission);
-    db.write(data);
-    res.status(201).json({ submission });
+    try {
+      const submissionId = generateId();
+      const submission = {
+        id: submissionId,
+        artisanId: req.auth.id,
+        documentType: documentType || "Unspecified",
+        fileName: documentFile.filename,
+        originalName: documentFile.originalname,
+        ninNumber: ninNumber || null,
+        selfieFileName: selfieFile?.filename || null,
+        guarantors: [
+          { name: guarantor1Name, phone: guarantor1Phone },
+          { name: guarantor2Name, phone: guarantor2Phone },
+        ],
+        status: "pending",
+        submittedAt: new Date().toISOString(),
+      };
+
+      const { error: insertError } = await supabase.from("kycSubmissions").insert([submission]);
+      if (insertError) throw insertError;
+
+      res.status(201).json({ submission });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
   }
 );
 
-router.get("/mine", requireAuth, requireRole("artisan"), (req, res) => {
-  const data = db.read();
-  const mine = data.kycSubmissions.filter((k) => k.artisanId === req.auth.id);
-  res.json({ submissions: mine });
+router.get("/mine", requireAuth, requireRole("artisan"), async (req, res) => {
+  try {
+    const { data: submissions, error } = await supabase
+      .from("kycSubmissions")
+      .select("*")
+      .eq("artisanId", req.auth.id);
+
+    if (error) throw error;
+    res.json({ submissions });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 export default router;

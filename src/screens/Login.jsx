@@ -57,11 +57,7 @@ export default function Login() {
             <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
             <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Create Account</button>
           </div>
-          <div className="border-t border-[#E5E7EB] mt-4 pt-4">
-            <p className="text-[#9CA3AF] text-xs text-center">
-              Demo logins — Admin: admin@handiplug.ng / admin1234 · Artisan: ifeanyi@handiplug.ng / password123
-            </p>
-          </div>
+
         </div>
       </div>
 
@@ -77,11 +73,7 @@ export default function Login() {
               <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
               <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Sign Up</button>
             </div>
-            <div className="border-t border-[#E5E7EB] mt-2 pt-4">
-              <p className="text-[#9CA3AF] text-xs text-center">
-                Demo logins — Admin: admin@handiplug.ng / admin1234 · Artisan: ifeanyi@handiplug.ng / password123
-              </p>
-            </div>
+
           </div>
         </div>
       </div>

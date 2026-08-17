@@ -1,7 +1,7 @@
 // Thin fetch wrapper around the HandiPlug backend (server/). Falls back
 // gracefully (throws a typed error) so calling screens can decide whether
 // to show a real error or fall back to demo data.
-const BASE_URL = import.meta.env?.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = import.meta.env?.VITE_API_URL || "/api";
 
 async function request(path, { method = "GET", body, token, formData } = {}) {
   const headers = {};

@@ -18,15 +18,15 @@ export default function Signup() {
 
   const submit = async () => {
     setError("");
-    if (!phone || !password) {
-      setError("Enter your phone number and a password.");
+    if (!fullName || !email || !phone || !password) {
+      setError("Please fill in all required fields (Full name, Email, Phone, Password).");
       return;
     }
     setLoading(true);
     try {
       const isArtisan = role === "I offer a service";
-      await register({ phone, password, role: isArtisan ? "artisan" : "customer" });
-      navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`);
+      await register({ fullName, email, phone, password, address: homeAddress, role: isArtisan ? "artisan" : "customer" });
+      navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, { state: { email } });
     } catch (err) {
       setError(err.message);
     } finally {

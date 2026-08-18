@@ -37,6 +37,8 @@ export const api = {
   login: (payload) => request("/auth/login", { method: "POST", body: payload }),
   me: (token) => request("/auth/me", { token }),
   forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
+  verifyOtp: (payload) => request("/auth/verify-otp", { method: "POST", body: payload }),
+  resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload }),
   changePassword: (payload, token) => request("/auth/change-password", { method: "PATCH", body: payload, token }),
   updateProfile: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),
 

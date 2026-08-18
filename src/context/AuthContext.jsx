@@ -31,7 +31,13 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (payload) => {
-    const { token: t, user: u } = await api.register(payload);
+    // Only register, do not persist yet because we need OTP verification
+    const res = await api.register(payload);
+    return res;
+  };
+
+  const verifyOtp = async (payload) => {
+    const { token: t, user: u } = await api.verifyOtp(payload);
     persist(t, u);
     return u;
   };
@@ -45,7 +51,7 @@ export function AuthProvider({ children }) {
   const logout = () => persist(null, null);
 
   return (
-    <AuthContext.Provider value={{ token, user, ready, register, login, logout, isAuthed: !!token }}>
+    <AuthContext.Provider value={{ token, user, ready, register, verifyOtp, login, logout, isAuthed: !!token }}>
       {children}
     </AuthContext.Provider>
   );

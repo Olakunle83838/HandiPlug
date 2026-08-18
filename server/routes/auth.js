@@ -2,6 +2,19 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { supabase, generateId } from "../supabase.js";
 import { signToken, requireAuth } from "../middleware/auth.js";
+import rateLimit from "express-rate-limit";
+
+const authLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: { error: "Too many requests from this IP, please try again after a minute" }
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 3,
+  message: { error: "Too many OTP requests. Please wait a minute before trying again." }
+});
 
 const router = Router();
 
@@ -10,11 +23,14 @@ function publicUser(u) {
   return rest;
 }
 
-router.post("/register", async (req, res) => {
+router.post("/register", authLimiter, async (req, res) => {
   const { fullName, email, phone, password, address, role, trade } = req.body;
 
-  if (!phone || !password || !role) {
-    return res.status(400).json({ error: "phone, password and role are required" });
+  if (!fullName || !email || !password || !role) {
+    return res.status(400).json({ error: "fullName, email, password and role are required" });
+  }
+  if (!phone) {
+    return res.status(400).json({ error: "phone is required" });
   }
   if (!["customer", "artisan"].includes(role)) {
     return res.status(400).json({ error: "role must be 'customer' or 'artisan'" });
@@ -45,7 +61,7 @@ router.post("/register", async (req, res) => {
     const newUser = {
       id: userId,
       role,
-      fullName: fullName || "New User",
+      fullName: fullName,
       email: email || null,
       phone,
       address: address || null,
@@ -66,15 +82,22 @@ router.post("/register", async (req, res) => {
     const { error: insertError } = await supabase.from("users").insert([newUser]);
     if (insertError) throw insertError;
 
-    const token = signToken(newUser);
-    res.status(201).json({ token, user: publicUser(newUser) });
+    // Send Supabase Email OTP
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email });
+    if (otpError) {
+      console.error("OTP send error:", otpError);
+      return res.status(500).json({ error: "Failed to send verification code" });
+    }
+
+    // Do NOT return token yet. User must verify OTP.
+    res.status(201).json({ message: "Verification code sent to email" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error during registration" });
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   const { email, phone, password } = req.body;
   const identifier = email || phone;
   if (!identifier || !password) return res.status(400).json({ error: "Email/phone and password are required" });
@@ -167,6 +190,51 @@ router.patch("/change-password", requireAuth, async (req, res) => {
     if (updateError) throw updateError;
     
     res.json({ message: "Password updated" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+router.post("/verify-otp", authLimiter, async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
+
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
+    if (error) {
+      return res.status(400).json({ error: "Invalid or expired verification code" });
+    }
+
+    // Mark user as verified in our table
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({ verified: true })
+      .eq("email", email)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Issue custom JWT for the app
+    const token = signToken(updatedUser);
+    res.json({ token, user: publicUser(updatedUser) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error during verification" });
+  }
+});
+
+router.post("/resend-otp", otpLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) return res.status(400).json({ error: "Failed to resend code" });
+
+    res.json({ message: "Verification code resent" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });

@@ -7,6 +7,7 @@ import Login from "./screens/Login";
 import Signup from "./screens/Signup";
 import ForgotPassword from "./screens/ForgotPassword";
 import OtpVerification from "./screens/OtpVerification";
+import AuthConfirm from "./screens/AuthConfirm";
 import Home from "./screens/Home";
 import SearchResults from "./screens/SearchResults";
 import ArtisanProfile from "./screens/ArtisanProfile";
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/otp" element={<OtpVerification />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/home" element={<Home />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/artisan-profile" element={<ArtisanProfile />} />

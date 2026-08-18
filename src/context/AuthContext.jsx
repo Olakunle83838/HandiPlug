@@ -42,6 +42,12 @@ export function AuthProvider({ children }) {
     return u;
   };
 
+  const handleMagicLink = async (tokenHash, type = 'email') => {
+    const { token: t, user: u } = await api.magicLinkLogin({ tokenHash, type });
+    persist(t, u);
+    return u;
+  };
+
   const login = async (email, password) => {
     const { token: t, user: u } = await api.login({ email, password });
     persist(t, u);
@@ -51,7 +57,7 @@ export function AuthProvider({ children }) {
   const logout = () => persist(null, null);
 
   return (
-    <AuthContext.Provider value={{ token, user, ready, register, verifyOtp, login, logout, isAuthed: !!token }}>
+    <AuthContext.Provider value={{ token, user, ready, register, verifyOtp, handleMagicLink, login, logout, isAuthed: !!token }}>
       {children}
     </AuthContext.Provider>
   );

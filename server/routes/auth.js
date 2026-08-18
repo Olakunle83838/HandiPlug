@@ -226,6 +226,61 @@ router.post("/verify-otp", authLimiter, async (req, res) => {
   }
 });
 
+router.post("/magiclink-login", authLimiter, async (req, res) => {
+  const { tokenHash, type = "email" } = req.body;
+
+  if (typeof tokenHash !== "string" || !tokenHash.trim()) {
+    return res.status(400).json({ error: "Invalid verification link" });
+  }
+
+  if (type !== "email") {
+    return res.status(400).json({ error: "Unsupported verification type" });
+  }
+
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (error || !data?.user) {
+      return res.status(400).json({ error: "Invalid or expired verification link" });
+    }
+
+    const verifiedEmail = data.user.email;
+    if (!verifiedEmail) {
+      return res.status(400).json({ error: "No email associated with this verification" });
+    }
+
+    // Match custom user
+    const { data: users, error: fetchError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", verifiedEmail)
+      .limit(1);
+
+    if (fetchError) throw fetchError;
+
+    const user = users[0];
+    if (!user) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    // Mark email verified
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({ verified: true })
+      .eq("id", user.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Issue custom JWT for the app
+    const token = signToken(updatedUser);
+    res.json({ token, user: publicUser(updatedUser) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error during verification" });
+  }
+});
+
 router.post("/resend-otp", otpLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });

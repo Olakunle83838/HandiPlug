@@ -38,6 +38,7 @@ export const api = {
   me: (token) => request("/auth/me", { token }),
   forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
   verifyOtp: (payload) => request("/auth/verify-otp", { method: "POST", body: payload }),
+  magicLinkLogin: ({ tokenHash, type = "email" }) => request("/auth/magiclink-login", { method: "POST", body: { tokenHash, type } }),
   resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload }),
   changePassword: (payload, token) => request("/auth/change-password", { method: "PATCH", body: payload, token }),
   updateProfile: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),

@@ -35,7 +35,7 @@ export default function AuthConfirm() {
         setStatus("success");
         // Route according to role
         if (user.role === "admin") navigate("/admin");
-        else if (user.role === "artisan") navigate("/artisan/dashboard");
+        else if (user.role === "artisan") navigate(user.trade ? "/artisan/dashboard" : "/artisan/build-profile");
         else navigate("/home");
       } catch (err) {
         setStatus("error");

@@ -49,8 +49,10 @@ export default function OtpVerification() {
     setError("");
     setLoading(true);
     try {
-      await verifyOtp({ email, otp: code });
-      navigate(role === "artisan" ? "/artisan/build-profile" : "/home");
+      const user = await verifyOtp({ email, otp: code });
+      if (user.role === "admin") navigate("/admin");
+      else if (user.role === "artisan") navigate(user.trade ? "/artisan/dashboard" : "/artisan/build-profile");
+      else navigate("/home");
     } catch (err) {
       setError(err.message || "Invalid or expired OTP");
     } finally {

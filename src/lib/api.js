@@ -37,11 +37,13 @@ export const api = {
   login: (payload) => request("/auth/login", { method: "POST", body: payload }),
   me: (token) => request("/auth/me", { token }),
   forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
-  verifyOtp: (payload) => request("/auth/verify-otp", { method: "POST", body: payload }),
+  requestOtp: (email) => request("/auth/otp/request", { method: "POST", body: { email } }),
+  verifyOtp: (payload) => request("/auth/otp/verify", { method: "POST", body: payload }),
   magicLinkLogin: ({ tokenHash, type = "email" }) => request("/auth/magiclink-login", { method: "POST", body: { tokenHash, type } }),
   resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload }),
   changePassword: (payload, token) => request("/auth/change-password", { method: "PATCH", body: payload, token }),
   updateProfile: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),
+  uploadAvatar: (formData, token) => request("/users/avatar", { method: "POST", body: formData, formData: true, token }),
 
   listArtisans: (params = {}) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""));
@@ -49,6 +51,7 @@ export const api = {
     return request(`/artisans${query ? `?${query}` : ""}`);
   },
   getArtisan: (id) => request(`/artisans/${id}`),
+  uploadPortfolio: (formData, token) => request("/artisans/portfolio", { method: "POST", body: formData, formData: true, token }),
 
   createBooking: (payload, token) => request("/bookings", { method: "POST", body: payload, token }),
   myBookings: (token) => request("/bookings/mine", { token }),
@@ -61,10 +64,17 @@ export const api = {
   submitKyc: (formData, token) => request("/kyc/submit", { method: "POST", body: formData, formData: true, token }),
   myKyc: (token) => request("/kyc/mine", { token }),
 
+  getMessages: (bookingId, token) => request(`/messages/${bookingId}`, { token }),
+  sendMessage: (payload, token) => request("/messages", { method: "POST", body: payload, token }),
+
+  getNotifications: (token) => request("/notifications", { token }),
+  markNotificationRead: (id, token) => request(`/notifications/${id}/read`, { method: "PATCH", token }),
+
   adminStats: (token) => request("/admin/stats", { token }),
   adminQueue: (token) => request("/admin/verification-queue", { token }),
   adminDecide: (id, decision, token) => request(`/admin/verification/${id}`, { method: "PATCH", body: { decision }, token }),
   adminUsers: (token) => request("/admin/users", { token }),
+  adminSuspendUser: (id, isSuspended, token) => request(`/admin/users/${id}/suspend`, { method: "PATCH", body: { isSuspended }, token }),
 };
 
 export const API_BASE_URL = BASE_URL;

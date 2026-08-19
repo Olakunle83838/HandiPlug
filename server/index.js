@@ -11,6 +11,8 @@ import reviewRoutes from "./routes/reviews.js";
 import kycRoutes from "./routes/kyc.js";
 import adminRoutes from "./routes/admin.js";
 import userRoutes from "./routes/users.js";
+import messagesRoutes from "./routes/messages.js";
+import notificationsRoutes from "./routes/notifications.js";
 
 dotenv.config();
 
@@ -30,6 +32,8 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messagesRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err, req, res, next) => {

@@ -22,7 +22,7 @@ export default function Login() {
     try {
       const user = await login(email, password);
       if (user.role === "admin") navigate("/admin");
-      else if (user.role === "artisan") navigate("/artisan/dashboard");
+      else if (user.role === "artisan") navigate(user.trade ? "/artisan/dashboard" : "/artisan/build-profile");
       else navigate("/home");
     } catch (err) {
       setError(err.message);

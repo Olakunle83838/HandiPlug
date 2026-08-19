@@ -114,4 +114,42 @@ router.get("/users", async (req, res) => {
   }
 });
 
+router.patch("/users/:id/suspend", async (req, res) => {
+  const { isSuspended } = req.body;
+  if (typeof isSuspended !== "boolean") {
+    return res.status(400).json({ error: "isSuspended must be a boolean", code: "VALIDATION_ERROR" });
+  }
+
+  try {
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (fetchError || !user) {
+      return res.status(404).json({ error: "User not found", code: "NOT_FOUND" });
+    }
+
+    if (user.role === "admin") {
+      return res.status(403).json({ error: "Cannot suspend an admin user", code: "FORBIDDEN" });
+    }
+
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({ isSuspended })
+      .eq("id", user.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    const { password, ...publicUser } = updatedUser;
+    res.json({ user: publicUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error updating suspension status", code: "SERVER_ERROR" });
+  }
+});
+
 export default router;

@@ -10,17 +10,42 @@ export function AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setToken(parsed.token);
-        setUser(parsed.user);
+    async function loadAuth() {
+      let cachedToken = null;
+      let cachedUser = null;
+      
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          cachedToken = parsed.token;
+          cachedUser = parsed.user;
+          setToken(cachedToken);
+          setUser(cachedUser);
+        }
+      } catch {
+        // ignore corrupted storage
       }
-    } catch {
-      // ignore corrupted storage
+      
+      if (cachedToken) {
+        try {
+          const { user: refreshedUser } = await api.me(cachedToken);
+          setUser(refreshedUser);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: cachedToken, user: refreshedUser }));
+        } catch (err) {
+          console.error("Hydration failed", err);
+          if (err.status && err.status >= 400 && err.status < 500) {
+            // Token invalid or suspended
+            setToken(null);
+            setUser(null);
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      }
+      setReady(true);
     }
-    setReady(true);
+    
+    loadAuth();
   }, []);
 
   const persist = (nextToken, nextUser) => {

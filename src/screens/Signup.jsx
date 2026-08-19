@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button, StatusSpace, TextInput, TogglePill } from "../components/UI";
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -26,6 +27,10 @@ export default function Signup() {
     try {
       const isArtisan = role === "I offer a service";
       await register({ fullName, email, phone, password, address: homeAddress, role: isArtisan ? "artisan" : "customer" });
+      
+      // Request the OTP code from Supabase Auth
+      await api.requestOtp(email);
+
       navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, { state: { email } });
     } catch (err) {
       setError(err.message);

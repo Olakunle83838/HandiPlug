@@ -1,163 +1,584 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button, StatusSpace } from "../components/UI";
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+
+import {
+  Button,
+  StatusSpace,
+} from "../components/UI";
+
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 
 export default function OtpVerification() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { verifyOtp } = useAuth();
-  
-  const email = location.state?.email || "";
-  
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [seconds, setSeconds] = useState(60);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [params] = useSearchParams();
+
+  const {
+    verifyOtp: verifyUserOtp,
+  } = useAuth();
+
+  /*
+  |--------------------------------------------------------------------------
+  | URL PARAMETERS
+  |--------------------------------------------------------------------------
+  */
+
+  const role =
+    params.get("role") || "customer";
+
+  const email =
+    params.get("email") || "";
+
+  /*
+  |--------------------------------------------------------------------------
+  | STATE
+  |--------------------------------------------------------------------------
+  */
+
+  const [otp, setOtp] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
+
+  const [seconds, setSeconds] =
+    useState(60);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | REDIRECT IF EMAIL IS MISSING
+  |--------------------------------------------------------------------------
+  */
 
   useEffect(() => {
     if (!email) {
-      navigate("/signup");
+      navigate("/signup", {
+        replace: true,
+      });
     }
-  }, [email, navigate]);
+  }, [
+    email,
+    navigate,
+  ]);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | COUNTDOWN TIMER
+  |--------------------------------------------------------------------------
+  */
 
   useEffect(() => {
-    if (seconds > 0) {
-      const timer = setTimeout(() => setSeconds(seconds - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [seconds]);
-
-  const submitOtp = async (overrideCode) => {
-    const code = typeof overrideCode === "string" ? overrideCode : otp.join("");
-    if (code.length < 6) {
-      setError("Please enter the full 6-digit code");
+    if (seconds <= 0) {
       return;
     }
+
+    const timer =
+      setTimeout(() => {
+        setSeconds(
+          (current) =>
+            current - 1
+        );
+      }, 1000);
+
+    return () =>
+      clearTimeout(timer);
+  }, [seconds]);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | VERIFY OTP
+  |--------------------------------------------------------------------------
+  */
+
+  const submitOtp = async (
+    overrideCode
+  ) => {
+    const code =
+      typeof overrideCode === "string"
+        ? overrideCode
+        : otp.join("");
+
+    if (code.length !== 6) {
+      setError(
+        "Please enter the full 6-digit code."
+      );
+      return;
+    }
+
+    if (!email) {
+      setError(
+        "Your email is missing. Please return to signup."
+      );
+      return;
+    }
+
     setError("");
     setLoading(true);
+
     try {
-      const user = await verifyOtp({ email, otp: code });
-      if (user.role === "admin") navigate("/admin");
-      else if (user.role === "artisan") navigate(user.trade ? "/artisan/dashboard" : "/artisan/build-profile");
-      else navigate("/home");
+      /*
+       * AuthContext calls:
+       *
+       * api.verifyOtp({
+       *   email,
+       *   otp: code
+       * })
+       *
+       * which sends:
+       *
+       * POST /api/auth/verify-otp
+       */
+
+      const user =
+        await verifyUserOtp(
+          email,
+          code
+        );
+
+      /*
+       |--------------------------------------------------------------------------
+       | NAVIGATION AFTER SUCCESSFUL VERIFICATION
+       |--------------------------------------------------------------------------
+       */
+
+      if (user?.role === "admin") {
+        navigate("/admin");
+      } else if (
+        user?.role === "artisan"
+      ) {
+        navigate(
+          user?.trade
+            ? "/artisan/dashboard"
+            : "/artisan/build-profile"
+        );
+      } else {
+        navigate("/home");
+      }
+
     } catch (err) {
-      setError(err.message || "Invalid or expired OTP");
+      console.error(
+        "OTP verification failed:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Invalid or expired verification code."
+      );
+
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (i, val) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
-    next[i] = val;
-    setOtp(next);
-    
-    if (val) {
-      if (i < 5) {
-        document.getElementById(`otp-${i + 1}`)?.focus();
-      } else {
-        const code = next.join("");
-        if (code.length === 6) {
-          submitOtp(code);
-        }
+
+  /*
+  |--------------------------------------------------------------------------
+  | HANDLE OTP INPUT
+  |--------------------------------------------------------------------------
+  */
+
+  const handleChange = (
+    index,
+    value
+  ) => {
+    /*
+     * Only allow one digit.
+     */
+
+    if (!/^\d?$/.test(value)) {
+      return;
+    }
+
+    const nextOtp = [
+      ...otp,
+    ];
+
+    nextOtp[index] =
+      value;
+
+    setOtp(nextOtp);
+
+    /*
+     * Move to the next input
+     */
+
+    if (
+      value &&
+      index < 5
+    ) {
+      document
+        .getElementById(
+          `otp-${index + 1}`
+        )
+        ?.focus();
+    }
+
+    /*
+     * Automatically submit
+     * once all 6 digits are entered.
+     */
+
+    if (
+      value &&
+      index === 5
+    ) {
+      const completeCode =
+        nextOtp.join("");
+
+      if (
+        completeCode.length === 6
+      ) {
+        submitOtp(
+          completeCode
+        );
       }
     }
   };
 
-  const handleKeyDown = (i, e) => {
-    if (e.key === "Backspace" && !otp[i] && i > 0) {
-      document.getElementById(`otp-${i - 1}`)?.focus();
+
+  /*
+  |--------------------------------------------------------------------------
+  | HANDLE BACKSPACE
+  |--------------------------------------------------------------------------
+  */
+
+  const handleKeyDown = (
+    index,
+    event
+  ) => {
+    if (
+      event.key ===
+        "Backspace" &&
+      !otp[index] &&
+      index > 0
+    ) {
+      document
+        .getElementById(
+          `otp-${index - 1}`
+        )
+        ?.focus();
     }
   };
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | RESEND OTP
+  |--------------------------------------------------------------------------
+  */
 
   const resendOtp = async () => {
-    if (seconds > 0) return;
+    if (
+      seconds > 0 ||
+      loading
+    ) {
+      return;
+    }
+
+    if (!email) {
+      setError(
+        "Your email is missing. Please return to signup."
+      );
+      return;
+    }
+
     setError("");
+
     try {
-      await api.resendOtp({ email });
+      await api.resendOtp({
+        email,
+      });
+
+      /*
+       * Reset countdown.
+       */
+
       setSeconds(60);
+
+      /*
+       * Clear previous OTP.
+       */
+
+      setOtp([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+
+      /*
+       * Focus first input.
+       */
+
+      document
+        .getElementById(
+          "otp-0"
+        )
+        ?.focus();
+
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      console.error(
+        "OTP resend failed:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Failed to resend verification code."
+      );
     }
   };
 
-  const OtpBoxes = ({ size = 48 }) => (
+
+  /*
+  |--------------------------------------------------------------------------
+  | OTP BOXES
+  |--------------------------------------------------------------------------
+  */
+
+  const OtpBoxes = ({
+    size = 48,
+  }) => (
     <div className="flex gap-2 justify-between">
-      {otp.map((digit, i) => (
-        <input
-          key={i}
-          id={`otp-${i}`}
-          value={digit}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          maxLength={1}
-          inputMode="numeric"
-          style={{ width: size, height: size + 8 }}
-          className="rounded-[10px] border border-[#1C4CD1] text-center text-[22px] font-bold text-[#1F2937] outline-none focus:border-[#FA7E24]"
-        />
-      ))}
+      {otp.map(
+        (digit, index) => (
+          <input
+            key={index}
+            id={`otp-${index}`}
+            value={digit}
+            onChange={(event) =>
+              handleChange(
+                index,
+                event.target.value
+              )
+            }
+            onKeyDown={(event) =>
+              handleKeyDown(
+                index,
+                event
+              )
+            }
+            maxLength={1}
+            inputMode="numeric"
+            autoComplete={
+              index === 0
+                ? "one-time-code"
+                : "off"
+            }
+            style={{
+              width: size,
+              height:
+                size + 8,
+            }}
+            className="rounded-[10px] border border-[#1C4CD1] text-center text-[22px] font-bold text-[#1F2937] outline-none focus:border-[#FA7E24]"
+          />
+        )
+      )}
     </div>
   );
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | RENDER
+  |--------------------------------------------------------------------------
+  */
+
   return (
     <div className="bg-white flex flex-col h-full w-full">
-      {/* ---------- MOBILE ---------- */}
+
+      {/* =====================================================
+          MOBILE
+          ===================================================== */}
+
       <div className="md:hidden flex flex-col h-full w-full">
+
         <StatusSpace />
+
         <div className="flex-1 flex flex-col gap-6 px-6 pt-10">
+
           <div>
-            <h1 className="text-[#1F2937] text-[28px] font-bold leading-[32px]">Verify your email</h1>
+            <h1 className="text-[#1F2937] text-[28px] font-bold leading-[32px]">
+              Verify your email
+            </h1>
+
             <p className="text-[#6B7280] text-sm mt-3">
-              We sent a 6-digit code to <span className="font-semibold text-[#1F2937] break-all">{email}</span>
+              We sent a 6-digit code to{" "}
+              <span className="font-semibold text-[#1F2937] break-all">
+                {email ||
+                  "your email"}
+              </span>
             </p>
           </div>
+
           {OtpBoxes({})}
-          {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+
+          {error && (
+            <p className="text-[#EF4444] text-sm">
+              {error}
+            </p>
+          )}
+
           <p className="text-[#6B7280] text-sm">
+
             {seconds > 0 ? (
-              <>Resend code in <span className="font-bold text-[#1F2937]">00:{String(seconds).padStart(2, "0")}</span></>
+              <>
+                Resend code in{" "}
+                <span className="font-bold text-[#1F2937]">
+                  00:
+                  {String(
+                    seconds
+                  ).padStart(
+                    2,
+                    "0"
+                  )}
+                </span>
+              </>
             ) : (
-              <button onClick={resendOtp} className="text-[#1C4CD1] font-semibold">Resend code now</button>
+              <button
+                onClick={
+                  resendOtp
+                }
+                disabled={
+                  loading
+                }
+                className="text-[#1C4CD1] font-semibold"
+              >
+                Resend code now
+              </button>
             )}
+
           </p>
+
         </div>
+
         <div className="p-6">
-          <Button onClick={submitOtp} disabled={loading}>
-            {loading ? "Verifying..." : "→ Verify"}
+
+          <Button
+            onClick={
+              submitOtp
+            }
+            disabled={
+              loading
+            }
+          >
+            {loading
+              ? "Verifying..."
+              : "→ Verify"}
           </Button>
+
         </div>
+
       </div>
 
-      {/* ---------- DESKTOP ---------- */}
+
+      {/* =====================================================
+          DESKTOP
+          ===================================================== */}
+
       <div className="hidden md:flex md:h-full md:w-full">
+
         <AuthSidePanel />
+
         <div className="w-1/2 flex items-center justify-center px-16">
+
           <div className="w-full max-w-[420px] flex flex-col gap-6">
+
             <div>
-              <h1 className="text-[#1F2937] text-[32px] font-bold">Verify your email</h1>
+
+              <h1 className="text-[#1F2937] text-[32px] font-bold">
+                Verify your email
+              </h1>
+
               <p className="text-[#6B7280] text-base mt-1">
-                We sent a 6-digit code to <span className="font-semibold text-[#1F2937] break-all">{email}</span>
+                We sent a 6-digit code to{" "}
+                <span className="font-semibold text-[#1F2937] break-all">
+                  {email ||
+                    "your email"}
+                </span>
               </p>
+
             </div>
-            {OtpBoxes({ size: 56 })}
-            {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-            <Button onClick={submitOtp} disabled={loading}>
-              {loading ? "Verifying..." : "→ Verify"}
+
+            {OtpBoxes({
+              size: 56,
+            })}
+
+            {error && (
+              <p className="text-[#EF4444] text-sm">
+                {error}
+              </p>
+            )}
+
+            <Button
+              onClick={
+                submitOtp
+              }
+              disabled={
+                loading
+              }
+            >
+              {loading
+                ? "Verifying..."
+                : "→ Verify"}
             </Button>
+
             <p className="text-[#6B7280] text-sm text-center">
+
               {seconds > 0 ? (
-                <>Resend code in <span className="font-bold text-[#1F2937]">00:{String(seconds).padStart(2, "0")}</span></>
+                <>
+                  Resend code in{" "}
+                  <span className="font-bold text-[#1F2937]">
+                    00:
+                    {String(
+                      seconds
+                    ).padStart(
+                      2,
+                      "0"
+                    )}
+                  </span>
+                </>
               ) : (
-                <button onClick={resendOtp} className="text-[#1C4CD1] font-semibold">Resend code now</button>
+                <button
+                  onClick={
+                    resendOtp
+                  }
+                  disabled={
+                    loading
+                  }
+                  className="text-[#1C4CD1] font-semibold"
+                >
+                  Resend code now
+                </button>
               )}
+
             </p>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }

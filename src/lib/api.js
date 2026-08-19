@@ -33,7 +33,9 @@ async function request(path, { method = "GET", body, token, formData } = {}) {
 export const api = {
   health: () => request("/health"),
 
-  register: (payload) => request("/auth/register", { method: "POST", body: payload }),
+  register: (payload) => request("/auth/register", { method: "POST", body: payload }), 
+  verifyOtp: (payload) => request("/auth/verify-otp", { method: "POST", body: payload}),
+  resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload}),
   login: (payload) => request("/auth/login", { method: "POST", body: payload }),
   me: (token) => request("/auth/me", { token }),
   forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),

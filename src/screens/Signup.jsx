@@ -26,12 +26,26 @@ export default function Signup() {
     setLoading(true);
     try {
       const isArtisan = role === "I offer a service";
+<<<<<<< HEAD
       await register({ fullName, email, phone, password, address: homeAddress, role: isArtisan ? "artisan" : "customer" });
       
       // Request the OTP code from Supabase Auth
       await api.requestOtp(email);
 
       navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, { state: { email } });
+=======
+      await register({
+      fullName,
+      email,
+      phone,
+      password,
+      address: homeAddress,
+      role: isArtisan ? "artisan" : "customer"
+    });
+      navigate(
+  `/otp?role=${isArtisan ? "artisan" : "customer"}&email=${encodeURIComponent(email)}`
+);
+>>>>>>> 17a0c4f (update on back and frontend)
     } catch (err) {
       setError(err.message);
     } finally {

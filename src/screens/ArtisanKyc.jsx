@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Label, Button, TextInput } from "../components/UI";
-import TopNav from "../components/TopNav";
+
 import { PendingBadge } from "../components/DesktopExtras";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";

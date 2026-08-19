@@ -21,7 +21,7 @@ async function request(path, { method = "GET", body, token, formData } = {}) {
     throw e;
   }
 
-  const data = await res.json().catch(() => ({}));
+  const data = await res.json().catch((_) => ({}));
   if (!res.ok) {
     const e = new Error(data.error || `Request failed (${res.status})`);
     e.status = res.status;

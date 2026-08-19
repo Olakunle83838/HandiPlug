@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
+import ProtectedRoute from "./components/ProtectedRoute";
+import RoleRoute from "./components/RoleRoute";
+
 import Splash from "./screens/Splash";
 import Onboarding from "./screens/Onboarding";
 import Login from "./screens/Login";
@@ -33,9 +36,6 @@ import Settings from "./screens/Settings";
 import PayoutDetails from "./screens/PayoutDetails";
 import AdminUsers from "./screens/AdminUsers";
 
-// Wraps every screen. On mobile it's a phone-sized frame; from the md
-// breakpoint up it becomes a full-width desktop layout (no frame, no
-// artificial max-width) — same route, same component, CSS handles the rest.
 function PhoneFrame({ children }) {
   return (
     <div className="min-h-screen w-full bg-[#e9edf1] md:bg-white flex items-center justify-center md:block">
@@ -52,6 +52,7 @@ export default function App() {
       <BrowserRouter>
         <PhoneFrame>
           <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<Navigate to="/splash" replace />} />
               <Route path="/splash" element={<Splash />} />
               <Route path="/onboarding" element={<Onboarding />} />
@@ -60,34 +61,36 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/otp" element={<OtpVerification />} />
               <Route path="/auth/confirm" element={<AuthConfirm />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/artisan-profile" element={<ArtisanProfile />} />
-              <Route path="/booking-request" element={<BookingRequest />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/booking-confirmation" element={<BookingConfirmation />} />
-              <Route path="/bookings" element={<MyBookings />} />
-              <Route path="/profile" element={<CustomerProfile />} />
-              <Route path="/payment" element={<Payment />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/rating" element={<Rating />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/saved-artisans" element={<SavedArtisans />} />
-              <Route path="/my-reviews" element={<MyReviews />} />
-              <Route path="/settings" element={<Settings />} />
 
-              {/* Artisan journey */}
-              <Route path="/artisan/build-profile" element={<ArtisanBuildProfile />} />
-              <Route path="/artisan/portfolio" element={<ArtisanPortfolioUpload />} />
-              <Route path="/artisan/kyc" element={<ArtisanKyc />} />
-              <Route path="/artisan/dashboard" element={<ArtisanDashboard />} />
-              <Route path="/artisan/jobs" element={<ArtisanJobs />} />
-              <Route path="/artisan/profile" element={<ArtisanProfileHome />} />
-              <Route path="/artisan/payout" element={<PayoutDetails />} />
+              {/* Protected Shared Routes (Customer & Artisan usually, maybe admin depending on context) */}
+              <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+              <Route path="/artisan-profile" element={<ProtectedRoute><ArtisanProfile /></ProtectedRoute>} />
+              <Route path="/booking-request" element={<ProtectedRoute><BookingRequest /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/booking-confirmation" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
+              <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><CustomerProfile /></ProtectedRoute>} />
+              <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+              <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+              <Route path="/rating" element={<ProtectedRoute><Rating /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/saved-artisans" element={<ProtectedRoute><SavedArtisans /></ProtectedRoute>} />
+              <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
-              {/* Admin */}
-              <Route path="/admin" element={<AdminModeration />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
+              {/* Artisan Routes */}
+              <Route path="/artisan/build-profile" element={<RoleRoute role="artisan"><ArtisanBuildProfile /></RoleRoute>} />
+              <Route path="/artisan/portfolio" element={<RoleRoute role="artisan"><ArtisanPortfolioUpload /></RoleRoute>} />
+              <Route path="/artisan/kyc" element={<RoleRoute role="artisan"><ArtisanKyc /></RoleRoute>} />
+              <Route path="/artisan/dashboard" element={<RoleRoute role="artisan"><ArtisanDashboard /></RoleRoute>} />
+              <Route path="/artisan/jobs" element={<RoleRoute role="artisan"><ArtisanJobs /></RoleRoute>} />
+              <Route path="/artisan/profile" element={<RoleRoute role="artisan"><ArtisanProfileHome /></RoleRoute>} />
+              <Route path="/artisan/payout" element={<RoleRoute role="artisan"><PayoutDetails /></RoleRoute>} />
+
+              {/* Admin Routes */}
+              <Route path="/admin" element={<RoleRoute role="admin"><AdminModeration /></RoleRoute>} />
+              <Route path="/admin/users" element={<RoleRoute role="admin"><AdminUsers /></RoleRoute>} />
 
               <Route path="*" element={<Navigate to="/splash" replace />} />
             </Routes>

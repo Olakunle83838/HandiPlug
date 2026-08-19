@@ -15,8 +15,8 @@ export function BrandProvider({ children }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        setLogoSrc(parsed.src || null);
-        setLogoHeight(parsed.height || DEFAULT_HEIGHT);
+        // setLogoSrc(parsed.src || null);
+        // setLogoHeight(parsed.height || DEFAULT_HEIGHT);
       }
     } catch {
       // ignore corrupted storage

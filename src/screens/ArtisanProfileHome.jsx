@@ -1,9 +1,11 @@
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Avatar, VerifiedBadge, Stars, Button } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import SidebarDesktop from "../components/SidebarDesktop";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 const ROWS = [
   { label: "Portfolio", path: "/artisan/portfolio" },
@@ -14,15 +16,47 @@ const ROWS = [
 
 export default function ArtisanProfileHome() {
   const navigate = useNavigate();
-  const { user, isAuthed, logout } = useAuth();
+  const { user, token, isAuthed, logout } = useAuth();
+  
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const doLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const handleAvatarChange = async (e) => {
+    if (!e.target.files?.length || !isAuthed) return;
+    const file = e.target.files[0];
+    
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      return alert("Only JPEG, PNG, and WebP are allowed.");
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      await api.uploadAvatar(formData, token);
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || "Failed to upload avatar");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="bg-white flex flex-col h-full w-full">
+      <input 
+        type="file" 
+        accept="image/jpeg,image/png,image/webp" 
+        ref={fileInputRef} 
+        onChange={handleAvatarChange} 
+        className="hidden" 
+      />
+
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
         <StatusSpace />
@@ -31,7 +65,18 @@ export default function ArtisanProfileHome() {
             <h1 className="text-[#1F2937] text-2xl font-bold">Profile</h1>
           </div>
           <div className="flex flex-col items-center gap-2 pt-6 pb-2">
-            <Avatar size={80} />
+            
+            <div className="relative cursor-pointer" onClick={() => isAuthed && fileInputRef.current?.click()}>
+              <Avatar size={80} src={user?.avatarUrl} />
+              {isAuthed && (
+                <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow">
+                  <div className="bg-[#1C4CD1] rounded-full w-6 h-6 flex items-center justify-center text-white text-xs">
+                    {uploading ? "..." : "📷"}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2 mt-2">
               <p className="text-[#1F2937] text-lg font-semibold">{user?.fullName || "Guest"}</p>
               {user?.verified && <VerifiedBadge />}
@@ -71,7 +116,18 @@ export default function ArtisanProfileHome() {
           <div className="flex-1 overflow-y-auto px-12 py-10">
             {isAuthed ? (
               <div className="max-w-[560px] mx-auto flex flex-col items-center gap-3 border border-[#E5E7EB] rounded-2xl p-8">
-                <Avatar size={88} />
+                
+                <div className="relative cursor-pointer" onClick={() => isAuthed && fileInputRef.current?.click()}>
+                  <Avatar size={88} src={user?.avatarUrl} />
+                  {isAuthed && (
+                    <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow">
+                      <div className="bg-[#1C4CD1] rounded-full w-8 h-8 flex items-center justify-center text-white text-sm">
+                        {uploading ? "..." : "📷"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-2">
                   <p className="text-[#1F2937] text-xl font-bold">{user.fullName}</p>
                   {user.verified && <VerifiedBadge />}

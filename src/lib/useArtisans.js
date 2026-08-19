@@ -55,7 +55,7 @@ export function useArtisans(filters = {}, fallback = mockTop) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    // setLoading(true);
     api
       .listArtisans(filters)
       .then((res) => {

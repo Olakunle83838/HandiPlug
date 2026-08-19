@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
     async function loadAuth() {
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
           }
         }
       }
-      setReady(true);
+      setIsHydrating(false);
     }
     
     loadAuth();
@@ -56,7 +56,6 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (payload) => {
-    // Only register, do not persist yet because we need OTP verification
     const res = await api.register(payload);
     return res;
   };
@@ -82,7 +81,7 @@ export function AuthProvider({ children }) {
   const logout = () => persist(null, null);
 
   return (
-    <AuthContext.Provider value={{ token, user, ready, register, verifyOtp, handleMagicLink, login, logout, isAuthed: !!token }}>
+    <AuthContext.Provider value={{ token, user, isHydrating, register, verifyOtp, handleMagicLink, login, logout, isAuthed: !!token }}>
       {children}
     </AuthContext.Provider>
   );

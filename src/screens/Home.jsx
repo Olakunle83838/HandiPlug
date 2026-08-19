@@ -4,7 +4,7 @@ import { StatusSpace, Card, Avatar, VerifiedBadge, Stars } from "../components/U
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import Logo from "../components/Logo";
-import { ArtisanCardDesktop } from "../components/DesktopExtras";
+
 import { trades } from "../data/mockData";
 import { useArtisans } from "../lib/useArtisans";
 import { useAuth } from "../context/AuthContext";

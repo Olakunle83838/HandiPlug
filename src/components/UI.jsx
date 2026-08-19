@@ -32,7 +32,17 @@ export function Card({ children, className = "", ...props }) {
   );
 }
 
-export function Avatar({ size = 56, emoji = "👤" }) {
+export function Avatar({ size = 56, emoji = "👤", src }) {
+  if (src) {
+    return (
+      <div 
+        className="rounded-full bg-[#F5F6F8] shrink-0 overflow-hidden"
+        style={{ width: size, height: size }}
+      >
+        <img src={src} alt="Avatar" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div
       className="rounded-full bg-[#F5F6F8] flex items-center justify-center shrink-0 text-[#9CA3AF]"

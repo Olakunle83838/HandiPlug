@@ -1,28 +1,66 @@
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { StatusSpace, Avatar, TextInput, Button } from "../components/UI";
+import { StatusSpace, Avatar, Button, TextInput } from "../components/UI";
 import BottomNav from "../components/BottomNav";
 import TopNav from "../components/TopNav";
 import SidebarDesktop from "../components/SidebarDesktop";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 const ROWS = [
   { label: "My Bookings", path: "/bookings" },
   { label: "Saved Artisans", path: "/saved-artisans" },
-  { label: "Reviews I've Left", path: "/my-reviews" },
+  { label: "My Reviews", path: "/my-reviews" },
   { label: "Settings", path: "/settings" },
 ];
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
-  const { user, isAuthed, logout } = useAuth();
+  const { user, token, isAuthed, logout } = useAuth();
+  
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const doLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const handleAvatarChange = async (e) => {
+    if (!e.target.files?.length || !isAuthed) return;
+    const file = e.target.files[0];
+    
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      return alert("Only JPEG, PNG, and WebP are allowed.");
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const res = await api.uploadAvatar(formData, token);
+      
+      // We force a page reload to resync AuthContext via /me to update the avatarUrl everywhere, 
+      // or we can just rely on the user object updating next time they refresh. 
+      // Since AuthContext doesn't expose a setUser method, reloading is safest for now to sync global state.
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || "Failed to upload avatar");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="bg-white flex flex-col h-full w-full">
+      <input 
+        type="file" 
+        accept="image/jpeg,image/png,image/webp" 
+        ref={fileInputRef} 
+        onChange={handleAvatarChange} 
+        className="hidden" 
+      />
+
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
         <StatusSpace />
@@ -31,7 +69,16 @@ export default function CustomerProfile() {
             <h1 className="text-[#1F2937] text-2xl font-bold">Profile</h1>
           </div>
           <div className="flex flex-col items-center gap-2 pt-6 pb-2">
-            <Avatar size={80} />
+            <div className="relative cursor-pointer" onClick={() => isAuthed && fileInputRef.current?.click()}>
+              <Avatar size={80} src={user?.avatarUrl} />
+              {isAuthed && (
+                <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow">
+                  <div className="bg-[#1C4CD1] rounded-full w-6 h-6 flex items-center justify-center text-white text-xs">
+                    {uploading ? "..." : "📷"}
+                  </div>
+                </div>
+              )}
+            </div>
             <p className="text-[#1F2937] text-lg font-semibold mt-2">{user?.fullName || "Guest"}</p>
             <p className="text-[#6B7280] text-sm">{isAuthed ? user?.email : "Not logged in"}</p>
             {!isAuthed && (
@@ -75,7 +122,18 @@ export default function CustomerProfile() {
           <div className="flex-1 overflow-y-auto px-12 py-8">
             <div className="max-w-[720px] flex flex-col gap-6">
               <h1 className="text-[#1F2937] text-2xl font-bold">Profile Information</h1>
-              <Avatar size={80} />
+              
+              <div className="relative inline-block self-start cursor-pointer" onClick={() => isAuthed && fileInputRef.current?.click()}>
+                <Avatar size={80} src={user?.avatarUrl} />
+                {isAuthed && (
+                  <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow">
+                    <div className="bg-[#1C4CD1] rounded-full w-6 h-6 flex items-center justify-center text-white text-xs">
+                      {uploading ? "..." : "📷"}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {isAuthed ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">

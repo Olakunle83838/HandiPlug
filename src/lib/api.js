@@ -1,82 +1,483 @@
-// Thin fetch wrapper around the HandiPlug backend (server/). Falls back
-// gracefully (throws a typed error) so calling screens can decide whether
-// to show a real error or fall back to demo data.
-const BASE_URL = import.meta.env?.VITE_API_URL || "/api";
+// Thin fetch wrapper around the HandiPlug backend.
+// Uses VITE_API_URL when provided, otherwise falls back to /api.
 
-async function request(path, { method = "GET", body, token, formData } = {}) {
+const BASE_URL =
+  import.meta.env?.VITE_API_URL || "/api";
+
+async function request(
+  path,
+  {
+    method = "GET",
+    body,
+    token,
+    formData,
+  } = {}
+) {
   const headers = {};
-  if (!formData) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  if (!formData) {
+    headers["Content-Type"] =
+      "application/json";
+  }
+
+  if (token) {
+    headers["Authorization"] =
+      `Bearer ${token}`;
+  }
 
   let res;
+
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers,
-      body: formData ? body : body ? JSON.stringify(body) : undefined,
-    });
+    res = await fetch(
+      `${BASE_URL}${path}`,
+      {
+        method,
+        headers,
+        body: formData
+          ? body
+          : body
+            ? JSON.stringify(body)
+            : undefined,
+      }
+    );
   } catch (err) {
-    const e = new Error("Can't reach the HandiPlug server. Is it running?");
-    e.isNetworkError = true;
-    throw e;
+    const error = new Error(
+      "Can't reach the HandiPlug server. Is it running?"
+    );
+
+    error.isNetworkError = true;
+
+    throw error;
   }
 
-  const data = await res.json().catch((_) => ({}));
+  const data =
+    await res
+      .json()
+      .catch(() => ({}));
+
   if (!res.ok) {
-    const e = new Error(data.error || `Request failed (${res.status})`);
-    e.status = res.status;
-    throw e;
+    const error = new Error(
+      data.error ||
+        `Request failed (${res.status})`
+    );
+
+    error.status =
+      res.status;
+
+    error.code =
+      data.code;
+
+    throw error;
   }
+
   return data;
 }
 
 export const api = {
-  health: () => request("/health"),
 
-  register: (payload) => request("/auth/register", { method: "POST", body: payload }), 
-  verifyOtp: (payload) => request("/auth/verify-otp", { method: "POST", body: payload}),
-  resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload}),
-  login: (payload) => request("/auth/login", { method: "POST", body: payload }),
-  me: (token) => request("/auth/me", { token }),
-  forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
-  requestOtp: (email) => request("/auth/otp/request", { method: "POST", body: { email } }),
-  verifyOtp: (payload) => request("/auth/otp/verify", { method: "POST", body: payload }),
-  magicLinkLogin: ({ tokenHash, type = "email" }) => request("/auth/magiclink-login", { method: "POST", body: { tokenHash, type } }),
-  resendOtp: (payload) => request("/auth/resend-otp", { method: "POST", body: payload }),
-  changePassword: (payload, token) => request("/auth/change-password", { method: "PATCH", body: payload, token }),
-  updateProfile: (payload, token) => request("/users/me", { method: "PATCH", body: payload, token }),
-  uploadAvatar: (formData, token) => request("/users/avatar", { method: "POST", body: formData, formData: true, token }),
+  /*
+  |--------------------------------------------------------------------------
+  | HEALTH
+  |--------------------------------------------------------------------------
+  */
 
-  listArtisans: (params = {}) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""));
-    const query = qs.toString();
-    return request(`/artisans${query ? `?${query}` : ""}`);
+  health: () =>
+    request("/health"),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | AUTHENTICATION
+  |--------------------------------------------------------------------------
+  */
+
+  register: (payload) =>
+    request(
+      "/auth/register",
+      {
+        method: "POST",
+        body: payload,
+      }
+    ),
+
+  verifyOtp: (payload) =>
+    request(
+      "/auth/verify-otp",
+      {
+        method: "POST",
+        body: payload,
+      }
+    ),
+
+  resendOtp: (payload) =>
+    request(
+      "/auth/resend-otp",
+      {
+        method: "POST",
+        body: payload,
+      }
+    ),
+
+  login: (payload) =>
+    request(
+      "/auth/login",
+      {
+        method: "POST",
+        body: payload,
+      }
+    ),
+
+  me: (token) =>
+    request(
+      "/auth/me",
+      {
+        token,
+      }
+    ),
+
+  forgotPassword: (email) =>
+    request(
+      "/auth/forgot-password",
+      {
+        method: "POST",
+        body: {
+          email,
+        },
+      }
+    ),
+
+  changePassword: (
+    payload,
+    token
+  ) =>
+    request(
+      "/auth/change-password",
+      {
+        method: "PATCH",
+        body: payload,
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | USERS
+  |--------------------------------------------------------------------------
+  */
+
+  updateProfile: (
+    payload,
+    token
+  ) =>
+    request(
+      "/users/me",
+      {
+        method: "PATCH",
+        body: payload,
+        token,
+      }
+    ),
+
+  uploadAvatar: (
+    formData,
+    token
+  ) =>
+    request(
+      "/users/avatar",
+      {
+        method: "POST",
+        body: formData,
+        formData: true,
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | ARTISANS
+  |--------------------------------------------------------------------------
+  */
+
+  listArtisans: (
+    params = {}
+  ) => {
+    const qs =
+      new URLSearchParams(
+        Object.entries(params).filter(
+          ([, value]) =>
+            value !== undefined &&
+            value !== ""
+        )
+      );
+
+    const query =
+      qs.toString();
+
+    return request(
+      `/artisans${
+        query
+          ? `?${query}`
+          : ""
+      }`
+    );
   },
-  getArtisan: (id) => request(`/artisans/${id}`),
-  uploadPortfolio: (formData, token) => request("/artisans/portfolio", { method: "POST", body: formData, formData: true, token }),
 
-  createBooking: (payload, token) => request("/bookings", { method: "POST", body: payload, token }),
-  myBookings: (token) => request("/bookings/mine", { token }),
-  updateBooking: (id, status, token) => request(`/bookings/${id}`, { method: "PATCH", body: { status }, token }),
+  getArtisan: (id) =>
+    request(
+      `/artisans/${id}`
+    ),
 
-  createReview: (payload, token) => request("/reviews", { method: "POST", body: payload, token }),
-  artisanReviews: (id) => request(`/reviews/artisan/${id}`),
-  myReviews: (token) => request("/reviews/mine", { token }),
+  uploadPortfolio: (
+    formData,
+    token
+  ) =>
+    request(
+      "/artisans/portfolio",
+      {
+        method: "POST",
+        body: formData,
+        formData: true,
+        token,
+      }
+    ),
 
-  submitKyc: (formData, token) => request("/kyc/submit", { method: "POST", body: formData, formData: true, token }),
-  myKyc: (token) => request("/kyc/mine", { token }),
 
-  getMessages: (bookingId, token) => request(`/messages/${bookingId}`, { token }),
-  sendMessage: (payload, token) => request("/messages", { method: "POST", body: payload, token }),
+  /*
+  |--------------------------------------------------------------------------
+  | BOOKINGS
+  |--------------------------------------------------------------------------
+  */
 
-  getNotifications: (token) => request("/notifications", { token }),
-  markNotificationRead: (id, token) => request(`/notifications/${id}/read`, { method: "PATCH", token }),
+  createBooking: (
+    payload,
+    token
+  ) =>
+    request(
+      "/bookings",
+      {
+        method: "POST",
+        body: payload,
+        token,
+      }
+    ),
 
-  adminStats: (token) => request("/admin/stats", { token }),
-  adminQueue: (token) => request("/admin/verification-queue", { token }),
-  adminDecide: (id, decision, token) => request(`/admin/verification/${id}`, { method: "PATCH", body: { decision }, token }),
-  adminUsers: (token) => request("/admin/users", { token }),
-  adminSuspendUser: (id, isSuspended, token) => request(`/admin/users/${id}/suspend`, { method: "PATCH", body: { isSuspended }, token }),
+  myBookings: (token) =>
+    request(
+      "/bookings/mine",
+      {
+        token,
+      }
+    ),
+
+  updateBooking: (
+    id,
+    status,
+    token
+  ) =>
+    request(
+      `/bookings/${id}`,
+      {
+        method: "PATCH",
+        body: {
+          status,
+        },
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | REVIEWS
+  |--------------------------------------------------------------------------
+  */
+
+  createReview: (
+    payload,
+    token
+  ) =>
+    request(
+      "/reviews",
+      {
+        method: "POST",
+        body: payload,
+        token,
+      }
+    ),
+
+  artisanReviews: (id) =>
+    request(
+      `/reviews/artisan/${id}`
+    ),
+
+  myReviews: (token) =>
+    request(
+      "/reviews/mine",
+      {
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | KYC
+  |--------------------------------------------------------------------------
+  */
+
+  submitKyc: (
+    formData,
+    token
+  ) =>
+    request(
+      "/kyc/submit",
+      {
+        method: "POST",
+        body: formData,
+        formData: true,
+        token,
+      }
+    ),
+
+  myKyc: (token) =>
+    request(
+      "/kyc/mine",
+      {
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | MESSAGES
+  |--------------------------------------------------------------------------
+  */
+
+  getMessages: (
+    bookingId,
+    token
+  ) =>
+    request(
+      `/messages/${bookingId}`,
+      {
+        token,
+      }
+    ),
+
+  sendMessage: (
+    payload,
+    token
+  ) =>
+    request(
+      "/messages",
+      {
+        method: "POST",
+        body: payload,
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | NOTIFICATIONS
+  |--------------------------------------------------------------------------
+  */
+
+  getNotifications: (
+    token
+  ) =>
+    request(
+      "/notifications",
+      {
+        token,
+      }
+    ),
+
+  markNotificationRead: (
+    id,
+    token
+  ) =>
+    request(
+      `/notifications/${id}/read`,
+      {
+        method: "PATCH",
+        token,
+      }
+    ),
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | ADMIN
+  |--------------------------------------------------------------------------
+  */
+
+  adminStats: (
+    token
+  ) =>
+    request(
+      "/admin/stats",
+      {
+        token,
+      }
+    ),
+
+  adminQueue: (
+    token
+  ) =>
+    request(
+      "/admin/verification-queue",
+      {
+        token,
+      }
+    ),
+
+  adminDecide: (
+    id,
+    decision,
+    token
+  ) =>
+    request(
+      `/admin/verification/${id}`,
+      {
+        method: "PATCH",
+        body: {
+          decision,
+        },
+        token,
+      }
+    ),
+
+  adminUsers: (
+    token
+  ) =>
+    request(
+      "/admin/users",
+      {
+        token,
+      }
+    ),
+
+  adminSuspendUser: (
+    id,
+    isSuspended,
+    token
+  ) =>
+    request(
+      `/admin/users/${id}/suspend`,
+      {
+        method: "PATCH",
+        body: {
+          isSuspended,
+        },
+        token,
+      }
+    ),
 };
 
-export const API_BASE_URL = BASE_URL;
+export const API_BASE_URL =
+  BASE_URL;

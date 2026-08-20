@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button, StatusSpace, TextInput, TogglePill } from "../components/UI";
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../lib/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -17,41 +16,37 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = async () => {
-    setError("");
-    if (!fullName || !email || !phone || !password) {
-      setError("Please fill in all required fields (Full name, Email, Phone, Password).");
-      return;
-    }
-    setLoading(true);
-    try {
-      const isArtisan = role === "I offer a service";
-<<<<<<< HEAD
-      await register({ fullName, email, phone, password, address: homeAddress, role: isArtisan ? "artisan" : "customer" });
-      
-      // Request the OTP code from Supabase Auth
-      await api.requestOtp(email);
+const submit = async () => {
+  setError("");
 
-      navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, { state: { email } });
-=======
-      await register({
+  if (!fullName || !email || !phone || !password) {
+    setError("Please fill in all required fields (Full name, Email, Phone, Password).");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const isArtisan = role === "I offer a service";
+
+    await register({
       fullName,
       email,
       phone,
       password,
       address: homeAddress,
-      role: isArtisan ? "artisan" : "customer"
+      role: isArtisan ? "artisan" : "customer",
     });
-      navigate(
-  `/otp?role=${isArtisan ? "artisan" : "customer"}&email=${encodeURIComponent(email)}`
-);
->>>>>>> 17a0c4f (update on back and frontend)
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, {
+      state: { email },
+    });
+  } catch (err) {
+    setError(err.message || "Failed to create account or send verification code.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const Form = () => (
     <>

@@ -1,4 +1,9 @@
-import { createContext, useContext, useEffect, useState,} from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { api } from "../lib/api";
 
 const STORAGE_KEY = "handiplug_auth";
@@ -10,65 +15,106 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isHydrating, setIsHydrating] = useState(true);
 
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD SAVED AUTHENTICATION
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
-<<<<<<< HEAD
     async function loadAuth() {
       let cachedToken = null;
       let cachedUser = null;
-      
+
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw =
+          localStorage.getItem(STORAGE_KEY);
+
         if (raw) {
-          const parsed = JSON.parse(raw);
-          cachedToken = parsed.token;
-          cachedUser = parsed.user;
+          const parsed =
+            JSON.parse(raw);
+
+          cachedToken =
+            parsed.token || null;
+
+          cachedUser =
+            parsed.user || null;
+
           setToken(cachedToken);
           setUser(cachedUser);
         }
-      } catch {
-        // ignore corrupted storage
+      } catch (error) {
+        console.error(
+          "Failed to read saved authentication:",
+          error
+        );
+
+        localStorage.removeItem(
+          STORAGE_KEY
+        );
       }
-      
+
+      /*
+      |--------------------------------------------------------------------------
+      | Refresh user from backend
+      |--------------------------------------------------------------------------
+      */
+
       if (cachedToken) {
         try {
-          const { user: refreshedUser } = await api.me(cachedToken);
+          const {
+            user: refreshedUser,
+          } = await api.me(
+            cachedToken
+          );
+
           setUser(refreshedUser);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: cachedToken, user: refreshedUser }));
-        } catch (err) {
-          console.error("Hydration failed", err);
-          if (err.status && err.status >= 400 && err.status < 500) {
-            // Token invalid or suspended
+
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              token: cachedToken,
+              user: refreshedUser,
+            })
+          );
+        } catch (error) {
+          console.error(
+            "Authentication hydration failed:",
+            error
+          );
+
+          /*
+          |--------------------------------------------------------------------------
+          | Only clear the token for actual authentication failures
+          |--------------------------------------------------------------------------
+          */
+
+          if (
+            error.status &&
+            error.status >= 400 &&
+            error.status < 500
+          ) {
             setToken(null);
             setUser(null);
-            localStorage.removeItem(STORAGE_KEY);
+
+            localStorage.removeItem(
+              STORAGE_KEY
+            );
           }
         }
       }
+
       setIsHydrating(false);
     }
-    
+
     loadAuth();
-=======
-    try {
-      const raw =
-        localStorage.getItem(STORAGE_KEY);
-
-      if (raw) {
-        const parsed =
-          JSON.parse(raw);
-
-        setToken(parsed.token);
-        setUser(parsed.user);
-      }
-    } catch {
-      localStorage.removeItem(
-        STORAGE_KEY
-      );
-    }
-
-    setReady(true);
->>>>>>> 17a0c4f (update on back and frontend)
   }, []);
+
+  /*
+  |--------------------------------------------------------------------------
+  | SAVE AUTHENTICATION
+  |--------------------------------------------------------------------------
+  */
 
   const persist = (
     nextToken,
@@ -92,74 +138,110 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (payload) => {
-<<<<<<< HEAD
-    const res = await api.register(payload);
-    return res;
+  /*
+  |--------------------------------------------------------------------------
+  | REGISTER
+  |--------------------------------------------------------------------------
+  */
+
+  const register = async (
+    payload
+  ) => {
+    /*
+     * Registration does NOT create a JWT.
+     *
+     * The backend creates the user,
+     * generates the OTP and sends it
+     * through Brevo.
+     */
+
+    return await api.register(
+      payload
+    );
   };
 
-  const verifyOtp = async (payload) => {
-    const { token: t, user: u } = await api.verifyOtp(payload);
-    persist(t, u);
-    return u;
-  };
-
-  const handleMagicLink = async (tokenHash, type = 'email') => {
-    const { token: t, user: u } = await api.magicLinkLogin({ tokenHash, type });
-=======
-    return await api.register(payload);
-  };
+  /*
+  |--------------------------------------------------------------------------
+  | VERIFY OTP
+  |--------------------------------------------------------------------------
+  */
 
   const verifyOtp = async (
     email,
     otp
   ) => {
-
     const {
-      token: t,
-      user: u,
+      token: nextToken,
+      user: nextUser,
     } = await api.verifyOtp({
       email,
       otp,
     });
 
->>>>>>> 17a0c4f (update on back and frontend)
-    persist(t, u);
+    /*
+     * JWT is only received after
+     * successful OTP verification.
+     */
 
-    return u;
+    persist(
+      nextToken,
+      nextUser
+    );
+
+    return nextUser;
   };
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOGIN
+  |--------------------------------------------------------------------------
+  */
 
   const login = async (
     email,
     password
   ) => {
-
     const {
-      token: t,
-      user: u,
+      token: nextToken,
+      user: nextUser,
     } = await api.login({
       email,
       password,
     });
 
-    persist(t, u);
+    persist(
+      nextToken,
+      nextUser
+    );
 
-    return u;
+    return nextUser;
   };
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOGOUT
+  |--------------------------------------------------------------------------
+  */
 
   const logout = () => {
-    persist(null, null);
+    persist(
+      null,
+      null
+    );
   };
 
+  /*
+  |--------------------------------------------------------------------------
+  | CONTEXT
+  |--------------------------------------------------------------------------
+  */
+
   return (
-<<<<<<< HEAD
-    <AuthContext.Provider value={{ token, user, isHydrating, register, verifyOtp, handleMagicLink, login, logout, isAuthed: !!token }}>
-=======
     <AuthContext.Provider
       value={{
         token,
         user,
-        ready,
+        isHydrating,
         register,
         verifyOtp,
         login,
@@ -167,7 +249,6 @@ export function AuthProvider({ children }) {
         isAuthed: !!token,
       }}
     >
->>>>>>> 17a0c4f (update on back and frontend)
       {children}
     </AuthContext.Provider>
   );

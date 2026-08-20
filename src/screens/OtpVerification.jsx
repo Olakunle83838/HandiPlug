@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useNavigate,
+  useLocation,
   useSearchParams,
 } from "react-router-dom";
 
@@ -15,29 +16,18 @@ import { api } from "../lib/api";
 
 export default function OtpVerification() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [params] = useSearchParams();
 
-  const {
-    verifyOtp: verifyUserOtp,
-  } = useAuth();
+  const { verifyOtp } = useAuth();
 
-  /*
-  |--------------------------------------------------------------------------
-  | URL PARAMETERS
-  |--------------------------------------------------------------------------
-  */
-
-  const role =
-    params.get("role") || "customer";
-
+  // Support both:
+  // 1. Email passed through navigation state
+  // 2. Email passed through URL query parameter
   const email =
-    params.get("email") || "";
-
-  /*
-  |--------------------------------------------------------------------------
-  | STATE
-  |--------------------------------------------------------------------------
-  */
+    location.state?.email ||
+    params.get("email") ||
+    "";
 
   const [otp, setOtp] = useState([
     "",
@@ -48,71 +38,45 @@ export default function OtpVerification() {
     "",
   ]);
 
-  const [seconds, setSeconds] =
-    useState(60);
+  const [seconds, setSeconds] = useState(60);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | REDIRECT IF EMAIL IS MISSING
-  |--------------------------------------------------------------------------
-  */
-
+  // Redirect back to signup if no email is available
   useEffect(() => {
     if (!email) {
       navigate("/signup", {
         replace: true,
       });
     }
-  }, [
-    email,
-    navigate,
-  ]);
+  }, [email, navigate]);
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | COUNTDOWN TIMER
-  |--------------------------------------------------------------------------
-  */
-
+  // Countdown timer
   useEffect(() => {
     if (seconds <= 0) {
       return;
     }
 
-    const timer =
-      setTimeout(() => {
-        setSeconds(
-          (current) =>
-            current - 1
-        );
-      }, 1000);
+    const timer = setTimeout(() => {
+      setSeconds((current) => current - 1);
+    }, 1000);
 
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [seconds]);
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | VERIFY OTP
-  |--------------------------------------------------------------------------
-  */
-
-  const submitOtp = async (
-    overrideCode
-  ) => {
+  // Verify OTP
+  const submitOtp = async (overrideCode) => {
     const code =
       typeof overrideCode === "string"
         ? overrideCode
         : otp.join("");
+
+    if (!email) {
+      setError(
+        "Your email is missing. Please return to signup."
+      );
+      return;
+    }
 
     if (code.length !== 6) {
       setError(
@@ -121,47 +85,19 @@ export default function OtpVerification() {
       return;
     }
 
-    if (!email) {
-      setError(
-        "Your email is missing. Please return to signup."
-      );
-      return;
-    }
-
     setError("");
     setLoading(true);
 
     try {
-      /*
-       * AuthContext calls:
-       *
-       * api.verifyOtp({
-       *   email,
-       *   otp: code
-       * })
-       *
-       * which sends:
-       *
-       * POST /api/auth/verify-otp
-       */
+      const user = await verifyOtp({
+        email,
+        otp: code,
+      });
 
-      const user =
-        await verifyUserOtp(
-          email,
-          code
-        );
-
-      /*
-       |--------------------------------------------------------------------------
-       | NAVIGATION AFTER SUCCESSFUL VERIFICATION
-       |--------------------------------------------------------------------------
-       */
-
+      // Redirect according to actual user role
       if (user?.role === "admin") {
         navigate("/admin");
-      } else if (
-        user?.role === "artisan"
-      ) {
+      } else if (user?.role === "artisan") {
         navigate(
           user?.trade
             ? "/artisan/dashboard"
@@ -170,7 +106,6 @@ export default function OtpVerification() {
       } else {
         navigate("/home");
       }
-
     } catch (err) {
       console.error(
         "OTP verification failed:",
@@ -178,117 +113,61 @@ export default function OtpVerification() {
       );
 
       setError(
-        err.message ||
+        err?.message ||
           "Invalid or expired verification code."
       );
-
     } finally {
       setLoading(false);
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | HANDLE OTP INPUT
-  |--------------------------------------------------------------------------
-  */
-
-  const handleChange = (
-    index,
-    value
-  ) => {
-    /*
-     * Only allow one digit.
-     */
-
+  // Handle OTP input
+  const handleChange = (index, value) => {
+    // Only allow one digit
     if (!/^\d?$/.test(value)) {
       return;
     }
 
-    const nextOtp = [
-      ...otp,
-    ];
-
-    nextOtp[index] =
-      value;
+    const nextOtp = [...otp];
+    nextOtp[index] = value;
 
     setOtp(nextOtp);
+    setError("");
 
-    /*
-     * Move to the next input
-     */
-
-    if (
-      value &&
-      index < 5
-    ) {
+    // Move to next box
+    if (value && index < 5) {
       document
-        .getElementById(
-          `otp-${index + 1}`
-        )
+        .getElementById(`otp-${index + 1}`)
         ?.focus();
     }
 
-    /*
-     * Automatically submit
-     * once all 6 digits are entered.
-     */
-
-    if (
-      value &&
-      index === 5
-    ) {
+    // Automatically verify after the sixth digit
+    if (value && index === 5) {
       const completeCode =
         nextOtp.join("");
 
-      if (
-        completeCode.length === 6
-      ) {
-        submitOtp(
-          completeCode
-        );
+      if (completeCode.length === 6) {
+        submitOtp(completeCode);
       }
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | HANDLE BACKSPACE
-  |--------------------------------------------------------------------------
-  */
-
-  const handleKeyDown = (
-    index,
-    event
-  ) => {
+  // Handle backspace
+  const handleKeyDown = (index, event) => {
     if (
-      event.key ===
-        "Backspace" &&
+      event.key === "Backspace" &&
       !otp[index] &&
       index > 0
     ) {
       document
-        .getElementById(
-          `otp-${index - 1}`
-        )
+        .getElementById(`otp-${index - 1}`)
         ?.focus();
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | RESEND OTP
-  |--------------------------------------------------------------------------
-  */
-
+  // Resend OTP
   const resendOtp = async () => {
-    if (
-      seconds > 0 ||
-      loading
-    ) {
+    if (seconds > 0 || loading) {
       return;
     }
 
@@ -302,19 +181,9 @@ export default function OtpVerification() {
     setError("");
 
     try {
-      await api.resendOtp({
-        email,
-      });
-
-      /*
-       * Reset countdown.
-       */
+      await api.resendOtp({ email });
 
       setSeconds(60);
-
-      /*
-       * Clear previous OTP.
-       */
 
       setOtp([
         "",
@@ -325,16 +194,9 @@ export default function OtpVerification() {
         "",
       ]);
 
-      /*
-       * Focus first input.
-       */
-
       document
-        .getElementById(
-          "otp-0"
-        )
+        .getElementById("otp-0")
         ?.focus();
-
     } catch (err) {
       console.error(
         "OTP resend failed:",
@@ -342,73 +204,53 @@ export default function OtpVerification() {
       );
 
       setError(
-        err.message ||
+        err?.message ||
           "Failed to resend verification code."
       );
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | OTP BOXES
-  |--------------------------------------------------------------------------
-  */
-
-  const OtpBoxes = ({
-    size = 48,
-  }) => (
+  // OTP input boxes
+  const OtpBoxes = ({ size = 48 }) => (
     <div className="flex gap-2 justify-between">
-      {otp.map(
-        (digit, index) => (
-          <input
-            key={index}
-            id={`otp-${index}`}
-            value={digit}
-            onChange={(event) =>
-              handleChange(
-                index,
-                event.target.value
-              )
-            }
-            onKeyDown={(event) =>
-              handleKeyDown(
-                index,
-                event
-              )
-            }
-            maxLength={1}
-            inputMode="numeric"
-            autoComplete={
-              index === 0
-                ? "one-time-code"
-                : "off"
-            }
-            style={{
-              width: size,
-              height:
-                size + 8,
-            }}
-            className="rounded-[10px] border border-[#1C4CD1] text-center text-[22px] font-bold text-[#1F2937] outline-none focus:border-[#FA7E24]"
-          />
-        )
-      )}
+      {otp.map((digit, index) => (
+        <input
+          key={index}
+          id={`otp-${index}`}
+          value={digit}
+          onChange={(event) =>
+            handleChange(
+              index,
+              event.target.value
+            )
+          }
+          onKeyDown={(event) =>
+            handleKeyDown(
+              index,
+              event
+            )
+          }
+          maxLength={1}
+          inputMode="numeric"
+          autoComplete={
+            index === 0
+              ? "one-time-code"
+              : "off"
+          }
+          style={{
+            width: size,
+            height: size + 8,
+          }}
+          className="rounded-[10px] border border-[#1C4CD1] text-center text-[22px] font-bold text-[#1F2937] outline-none focus:border-[#FA7E24]"
+        />
+      ))}
     </div>
   );
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | RENDER
-  |--------------------------------------------------------------------------
-  */
 
   return (
     <div className="bg-white flex flex-col h-full w-full">
 
-      {/* =====================================================
-          MOBILE
-          ===================================================== */}
+      {/* ================= MOBILE ================= */}
 
       <div className="md:hidden flex flex-col h-full w-full">
 
@@ -424,8 +266,7 @@ export default function OtpVerification() {
             <p className="text-[#6B7280] text-sm mt-3">
               We sent a 6-digit code to{" "}
               <span className="font-semibold text-[#1F2937] break-all">
-                {email ||
-                  "your email"}
+                {email || "your email"}
               </span>
             </p>
           </div>
@@ -439,15 +280,12 @@ export default function OtpVerification() {
           )}
 
           <p className="text-[#6B7280] text-sm">
-
             {seconds > 0 ? (
               <>
                 Resend code in{" "}
                 <span className="font-bold text-[#1F2937]">
                   00:
-                  {String(
-                    seconds
-                  ).padStart(
+                  {String(seconds).padStart(
                     2,
                     "0"
                   )}
@@ -455,45 +293,31 @@ export default function OtpVerification() {
               </>
             ) : (
               <button
-                onClick={
-                  resendOtp
-                }
-                disabled={
-                  loading
-                }
+                onClick={resendOtp}
+                disabled={loading}
                 className="text-[#1C4CD1] font-semibold"
               >
                 Resend code now
               </button>
             )}
-
           </p>
 
         </div>
 
         <div className="p-6">
-
           <Button
-            onClick={
-              submitOtp
-            }
-            disabled={
-              loading
-            }
+            onClick={submitOtp}
+            disabled={loading}
           >
             {loading
               ? "Verifying..."
               : "→ Verify"}
           </Button>
-
         </div>
 
       </div>
 
-
-      {/* =====================================================
-          DESKTOP
-          ===================================================== */}
+      {/* ================= DESKTOP ================= */}
 
       <div className="hidden md:flex md:h-full md:w-full">
 
@@ -504,7 +328,6 @@ export default function OtpVerification() {
           <div className="w-full max-w-[420px] flex flex-col gap-6">
 
             <div>
-
               <h1 className="text-[#1F2937] text-[32px] font-bold">
                 Verify your email
               </h1>
@@ -512,16 +335,12 @@ export default function OtpVerification() {
               <p className="text-[#6B7280] text-base mt-1">
                 We sent a 6-digit code to{" "}
                 <span className="font-semibold text-[#1F2937] break-all">
-                  {email ||
-                    "your email"}
+                  {email || "your email"}
                 </span>
               </p>
-
             </div>
 
-            {OtpBoxes({
-              size: 56,
-            })}
+            {OtpBoxes({ size: 56 })}
 
             {error && (
               <p className="text-[#EF4444] text-sm">
@@ -530,12 +349,8 @@ export default function OtpVerification() {
             )}
 
             <Button
-              onClick={
-                submitOtp
-              }
-              disabled={
-                loading
-              }
+              onClick={submitOtp}
+              disabled={loading}
             >
               {loading
                 ? "Verifying..."
@@ -543,15 +358,12 @@ export default function OtpVerification() {
             </Button>
 
             <p className="text-[#6B7280] text-sm text-center">
-
               {seconds > 0 ? (
                 <>
                   Resend code in{" "}
                   <span className="font-bold text-[#1F2937]">
                     00:
-                    {String(
-                      seconds
-                    ).padStart(
+                    {String(seconds).padStart(
                       2,
                       "0"
                     )}
@@ -559,18 +371,13 @@ export default function OtpVerification() {
                 </>
               ) : (
                 <button
-                  onClick={
-                    resendOtp
-                  }
-                  disabled={
-                    loading
-                  }
+                  onClick={resendOtp}
+                  disabled={loading}
                   className="text-[#1C4CD1] font-semibold"
                 >
                   Resend code now
                 </button>
               )}
-
             </p>
 
           </div>

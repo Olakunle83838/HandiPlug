@@ -1,256 +1,369 @@
-# HandiPlug — Full-Stack App (React + Express)
+# 🔧 HandiPlug
 
-## Latest update
+### Nigeria's Digital Marketplace for Skilled Artisans
 
-- **Signup and OTP screens now match your uploaded prototype pixel-for-
-  pixel.** I'd drifted from the design earlier (added Full Name/Email/
-  Address fields that were never in your Figma), and a leftover
-  `wordmarkClass` prop from an older version of `Logo` meant the desktop
-  side panel wasn't rendering the logo correctly. Both fixed — new shared
-  `AuthSidePanel` component keeps the blue panel (real logo, exact
-  headline/quote/copyright) pixel-consistent, and the form now only asks
-  for what your design actually asks for (role toggle, phone, password).
-- **Backend updated to match**: phone is now the primary signup
-  identifier (email is optional, added later from Settings). Login
-  accepts either email or phone — verified with curl: register by phone
-  → log in by phone → duplicate phone correctly rejected → existing
-  email-based demo accounts (admin, seeded artisans) still work
-  unchanged.
-- Only touched Signup + OTP as requested. `Login.jsx` and
-  `ForgotPassword.jsx` still have the same stale `wordmarkClass` prop and
-  the old-style panel — say the word if you want those brought in line
-  with the same `AuthSidePanel` component.
+HandiPlug is a digital artisan marketplace designed to connect customers with skilled and reliable service providers. The platform makes it easier for customers to discover artisans, explore their services, communicate with them, and book services through one convenient digital platform.
 
 ---
 
+## 🚀 Live Application
 
-
-1. **Fixed the search/category bug.** Root cause: category tiles on Home
-   navigated to `/search` with no information about which trade was
-   clicked, and the Search screen never read any filter from the URL — so
-   every click showed the same unfiltered list. Fixed at the source:
-   clicking "Plumber" now goes to `/search?trade=Plumber`, and Search
-   actually filters on it — verified with curl against the real API
-   (`?trade=Plumber` → only plumbers, `?trade=Carpenter` → only carpenters)
-   **and** against the offline mock-data fallback, so it's correct whether
-   or not the backend is running.
-2. **Rebuilt the UI to match your uploaded prototype** (both zips reviewed
-   screen-by-screen): new brand blue (`#1C4CD1`) hero/header color, the
-   2-column desktop layouts with sidebar promos, verification badge pills
-   on artisan profiles, the 4-stat/3-button artisan dashboard with a
-   weekly chart and profile-completeness bar, the sidebar-nav Admin panel,
-   and simplified KYC guarantor fields (phone only, matching your design).
-3. **Logo is back to plain code control** — no admin panel, no upload
-   flow, no gating. `src/assets/logo.png` (full lockup) and
-   `src/assets/logo-icon.png` (icon only) are your actual uploaded file,
-   background removed. Change the size anywhere with one prop:
-   ```jsx
-   <Logo size={40} />              // full lockup, 40px tall
-   <Logo size={32} variant="icon" />  // icon only
-   ```
-   To replace the artwork itself later, just overwrite those two PNGs.
-4. **Wired the dead-end pages in.** Payment had zero links pointing to it
-   anywhere in the app. Now: when an artisan marks a job complete, it
-   shows up in the customer's My Bookings "Completed" tab with a
-   **"Pay Now →"** action that carries the real artisan/booking context
-   into the Payment screen. KYC was already reachable (Signup → OTP →
-   Build Profile → Portfolio → KYC for new artisans, or "Verification
-   Status" from the artisan's own profile) — double-checked it still
-   works end to end.
-5. Only touched what was asked — the rest of last round's work (auth,
-   bookings, KYC upload, admin approve/reject, the input-focus bug fix)
-   is untouched and still fully wired.
+**Website:** https://handi-plug.vercel.app/
 
 ---
 
-## Quick start (both pieces)
+## 📌 Problem Statement
 
-**1. Backend**
+Finding a reliable artisan in Nigeria can often be stressful and time-consuming. Customers may struggle to identify skilled professionals, compare service providers, communicate their requirements, and arrange services conveniently.
+
+At the same time, many skilled artisans have limited digital visibility and may struggle to consistently reach potential customers.
+
+HandiPlug was created to bridge this gap by providing a digital platform where customers can connect with artisans and artisans can connect with potential customers.
+
+---
+
+## 💡 Our Solution
+
+HandiPlug provides a centralized digital marketplace where customers can discover skilled artisans and access different services.
+
+The platform facilitates the entire interaction between customers and artisans, from discovering a service provider to communicating about a job and arranging a service.
+
+---
+
+## ✨ Key Features
+
+### 👤 User Authentication
+
+* Customer and artisan registration
+* Secure login
+* Email verification/OTP
+* Role-based user access
+
+### 🔎 Artisan Discovery
+
+* Browse available artisans
+* Explore available services
+* View artisan information
+* Find suitable professionals based on service needs
+
+### 👨‍🔧 Artisan Profiles
+
+* Artisan information
+* Services offered
+* Professional details
+* Customer ratings and reviews
+
+### 📅 Service Booking
+
+* Customers can request/book artisan services
+* Booking information can be managed through the platform
+* Helps organize interactions between customers and artisans
+
+### 💬 Customer–Artisan Chat
+
+* Direct communication between customers and artisans
+* Allows users to discuss job requirements
+* Helps clarify service details before work begins
+
+### ⭐ Reviews & Ratings
+
+* Customers can provide feedback
+* Ratings help customers make more informed decisions
+* Encourages service quality and accountability
+
+### 🔔 Notifications
+
+* Keeps users informed about relevant platform activities
+* Provides updates related to bookings and interactions
+
+### 🛡️ User Roles
+
+HandiPlug supports different types of users, including:
+
+* Customers
+* Artisans
+* Administrators
+
+Each role has access to functionality relevant to their responsibilities.
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend
+
+* React
+* Vite
+* React Router
+* JavaScript
+* HTML5
+* CSS
+* Lucide React
+
+### Backend
+
+* Node.js
+* Express.js
+
+### Database & Authentication
+
+* Supabase
+* PostgreSQL
+* Supabase Authentication
+
+### Email & Verification
+
+* Brevo
+* Email OTP verification
+
+### Deployment
+
+* Vercel
+
+---
+
+## 🏗️ Project Architecture
+
+HandiPlug follows a client-server architecture.
+
+```text
+                    ┌─────────────────────┐
+                    │      Customer       │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │     HandiPlug       │
+                    │      Frontend       │
+                    │       React         │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │       Backend       │
+                    │   Node.js/Express   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      Supabase       │
+                    │ PostgreSQL + Auth   │
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │       Brevo         │
+                    │   Email / OTP       │
+                    └─────────────────────┘
+```
+
+---
+
+## 📂 Project Structure
+
+A simplified structure of the project is:
+
+```text
+HandiPlug/
+│
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── context/
+│   ├── lib/
+│   └── ...
+│
+├── public/
+│
+├── package.json
+├── vite.config.js
+└── README.md
+```
+
+The backend is maintained separately and provides API functionality for authentication, artisans, bookings, reviews, and other platform operations.
+
+---
+
+## ⚙️ Getting Started
+
+### 1. Clone the repository
+
 ```bash
-cd server
+git clone https://github.com/Olakunle83838/HandiPlug.git
+```
+
+### 2. Navigate into the project
+
+```bash
+cd HandiPlug
+```
+
+### 3. Install dependencies
+
+```bash
 npm install
-cp .env.example .env
-npm start
-```
-Runs on `http://localhost:4000`, auto-seeds demo data on first run.
-
-**2. Frontend**
-```bash
-npm install react-router-dom
-cp .env.example .env
-```
-Copy `src/handiplug.css`, import it once in your entry file:
-```js
-import "./handiplug.css";
-```
-Then run your usual `vite dev`.
-
-If the backend isn't running, screens that fetch live data fall back to
-demo data automatically.
-
-## Demo accounts
-
-| Role     | Email                    | Password      |
-|----------|---------------------------|----------------|
-| Admin    | admin@handiplug.ng        | admin1234      |
-| Artisan  | ifeanyi@handiplug.ng      | password123    |
-| Artisan  | tunde@handiplug.ng        | password123    |
-| Artisan  | musa@handiplug.ng         | password123 *(unverified)* |
-
----
-
-## Step-by-step: getting the full backend running for real
-
-This walks through everything from "I have this zip file" to "the whole
-app works end-to-end on my machine," assuming no prior Node experience.
-
-### Step 1 — Install Node.js
-
-You need Node 18 or newer. Check what you have:
-```bash
-node -v
-```
-If that fails or shows something older than v18, install it from
-[nodejs.org](https://nodejs.org) (choose the LTS version) — or, if you're
-comfortable with a version manager, `nvm install --lts`.
-
-### Step 2 — Unzip and lay out the folders
-
-Unzip this package. You should have two top-level folders: `src/` (the
-React frontend) and `server/` (the Express backend). Keep them as
-siblings inside one project folder — e.g.:
-```
-handiplug/
-  src/
-  server/
-  handiplug.css   (actually lives inside src/, see below)
 ```
 
-### Step 3 — Start the backend
+### 4. Start the development server
 
-```bash
-cd server
-npm install
-```
-This downloads Express, JWT, bcrypt, and the other backend dependencies —
-takes under a minute.
-
-```bash
-cp .env.example .env
-```
-Open `.env` in a text editor. At minimum, change `JWT_SECRET` to a long
-random string (this is what signs login tokens — anyone who knows it can
-forge logins, so don't leave the example value in anything real).
-
-```bash
-npm start
-```
-You should see:
-```
-HandiPlug API running on http://localhost:4000
-```
-Leave this terminal window open — the backend needs to keep running.
-First run auto-creates `server/data/db.json` with the seed accounts from
-the table above.
-
-**Sanity check it's alive**, in a second terminal:
-```bash
-curl http://localhost:4000/api/health
-```
-Should print `{"ok":true,"service":"handiplug-api"}`.
-
-### Step 4 — Start the frontend
-
-Open a **new terminal tab** (leave the backend running in the first one).
-If you don't already have a React project set up, the fastest path is:
-
-```bash
-npm create vite@latest handiplug-app -- --template react
-cd handiplug-app
-npm install react-router-dom
-```
-
-Then copy this package's `src/` folder contents **into** that new
-project's `src/` folder, replacing the default `App.jsx`.
-
-```bash
-cp .env.example .env
-```
-The default `VITE_API_URL=http://localhost:4000/api` already points at
-the backend you started in Step 3 — no change needed unless you're
-running the backend somewhere else.
-
-In your entry file (`src/main.jsx`), add one line:
-```js
-import "./handiplug.css";
-```
-
-Now run:
 ```bash
 npm run dev
 ```
-Open the printed `localhost` URL. You should land on the Splash screen.
 
-### Step 5 — Prove it's really working
-
-1. Click **Get Started** → **Create Account** → register a brand new
-   account (real email doesn't matter, it's not verified by an email
-   provider — just needs to be unique).
-2. You'll land on Home. Click a category that isn't Electrician, e.g.
-   **Plumber** — confirm you see plumbers, not electricians (this was the
-   bug you reported; it's fixed).
-3. Book an artisan. Log out, log back in as
-   `ifeanyi@handiplug.ng` / `password123`, go to the Artisan Dashboard —
-   your booking request should be sitting there waiting to be accepted.
-4. Log in as `admin@handiplug.ng` / `admin1234`, go to `/admin` — you'll
-   see the verification queue once an artisan submits KYC documents.
-
-If all four of those work, the full stack — registration, search,
-bookings, and admin — is genuinely wired end to end, not just UI.
-
-### Step 6 — When you're ready to put this online
-
-- **Backend**: any plain Node host works (no native dependencies) —
-  Render, Railway, Fly.io, or a VPS. Before real users register, swap
-  `server/db.js` (currently a JSON file) for a real database — Postgres
-  via Prisma is a common, well-documented choice. The JSON file store is
-  fine for development and demos but will not hold up to concurrent
-  writes from many simultaneous users.
-- **Frontend**: any static host — Vercel, Netlify, Cloudflare Pages. Run
-  `npm run build`, deploy the output folder, and set `VITE_API_URL` to
-  wherever you deployed the backend.
-- Rotate `JWT_SECRET` to something long and random in production, and
-  don't commit `.env` to version control (a `.gitignore` for it is
-  already included in `server/`).
+The application should then be available locally through the Vite development server.
 
 ---
 
-## What's intentionally NOT wired (and why)
+## 🔐 Environment Variables
 
-- **Payment/escrow** — the payment flow now has a real entry point (My
-  Bookings → Pay Now), but the actual money movement is still UI-only.
-  Real payment needs a licensed processor (Paystack/Flutterwave in
-  Nigeria); faking a "success" state against real data would be
-  misleading rather than helpful.
-- **Chat** — local/UI-only. Real-time messaging needs WebSockets, which
-  is a meaningfully bigger scope than the REST endpoints here.
-- **OTP/SMS verification** — UX step only, no SMS provider account wired
-  up (Termii/Twilio would be the usual choice for Nigeria).
-- **Job Boost / Verified Pro Plan payments** — the upsell cards are real
-  UI, but "Upgrade"/"Boost" don't charge anything (again, needs a payment
-  processor to be honest rather than fake).
-- **Flagged Content** (admin) — no reporting system built yet; the tab
-  exists in the UI but there's nothing to flag content with yet.
+Create an appropriate `.env` file for the environment and configure the required credentials.
 
-None of these are hard to add — they're separate, genuine scopes (payment
-processor integration, SMS provider, WebSocket server) rather than
-something to fake with what's already here.
+Example:
 
-## Known gaps
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_URL=your_backend_api_url
+```
 
-- No automated tests (unit or e2e) yet — everything above was verified
-  manually via curl and full production builds after each change.
-- The two prototype links originally shared couldn't be fetched for
-  source code (Claude's public artifact viewer only exposes the page
-  shell) — this update was built from the screenshots you uploaded
-  instead, reviewed screen-by-screen.
+Backend environment variables should be stored separately and must **never be exposed in the frontend**.
+
+Do not commit `.env` files containing real credentials to GitHub.
+
+---
+
+## 🌍 Deployment
+
+The frontend is deployed using **Vercel**.
+
+Live application:
+
+https://handi-plug.vercel.app/
+
+The backend and database services are configured separately.
+
+---
+
+## 🎯 Target Users
+
+### Customers
+
+People looking for reliable professionals for services such as:
+
+* Plumbing
+* Electrical work
+* Cleaning
+* Carpentry
+* Painting
+* Repairs
+* Maintenance
+* Technical services
+* Other skilled services
+
+### Artisans
+
+Skilled professionals who want to:
+
+* Increase their visibility
+* Reach more customers
+* Promote their services
+* Communicate directly with customers
+* Receive service opportunities
+* Build a digital presence
+
+---
+
+## 💼 Business Value
+
+HandiPlug addresses a real marketplace problem by bringing customers and skilled service providers together digitally.
+
+The platform aims to:
+
+* Reduce the difficulty of finding artisans
+* Improve customer convenience
+* Increase artisan visibility
+* Improve communication between customers and service providers
+* Create more opportunities for skilled professionals
+* Digitize the process of discovering and accessing artisan services
+
+---
+
+## 🔮 Future Development
+
+Potential future improvements include:
+
+* Online payments
+* Location-based artisan discovery
+* Advanced search and filtering
+* Real-time messaging improvements
+* Push notifications
+* Artisan verification
+* Enhanced identity verification
+* Service tracking
+* In-app payment and escrow
+* Analytics dashboards
+* Mobile applications
+* Expansion to additional Nigerian cities
+* Expansion into other African markets
+
+---
+
+## 🔒 Security
+
+HandiPlug is designed with security in mind.
+
+Sensitive credentials and server-side secrets should never be stored in frontend code or committed to the repository.
+
+Authentication, authorization, database access policies, and API security should be configured appropriately before production use.
+
+---
+
+## 🤝 Contribution
+
+Contributions, suggestions, and improvements are welcome.
+
+To contribute:
+
+1. Fork the repository.
+2. Create a new branch.
+
+```bash
+git checkout -b feature/your-feature
+```
+
+3. Make your changes.
+4. Commit your changes.
+
+```bash
+git commit -m "Add your feature"
+```
+
+5. Push your branch.
+
+```bash
+git push origin feature/your-feature
+```
+
+6. Open a Pull Request.
+
+---
+
+## 📄 License
+
+This project is currently maintained as a HandiPlug project.
+
+License terms can be added here when the project's licensing decision has been finalized.
+
+---
+
+## 📞 Contact
+
+For information about HandiPlug, visit:
+
+**https://handi-plug.vercel.app/**
+
+---
+
+# 🔧 HandiPlug
+
+### Connecting Skills. Creating Opportunities. Simplifying Services.

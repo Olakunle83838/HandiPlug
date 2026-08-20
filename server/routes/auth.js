@@ -7,6 +7,8 @@ import rateLimit from "express-rate-limit";
 import {
   normalizeEmail,
   normalizePhone,
+  registrationConflict,
+  selectBrevoSender,
   secureHashEqual,
   validateRegistration,
 } from "../lib/authSecurity.js";
@@ -96,9 +98,12 @@ function hashOtp(otp) {
 
 async function sendOtpEmail({ email, fullName, otp }) {
   const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  let sender = selectBrevoSender(
+    process.env.BREVO_SENDER_EMAIL,
+    process.env.BREVO_SENDER_NAME,
+  );
 
-  if (!apiKey || !senderEmail) {
+  if (!apiKey) {
     const isLocalDevelopment = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
     if (isLocalDevelopment) {
       console.info(`[HandiPlug auth] Development OTP for ${email}: ${otp}`);
@@ -106,6 +111,17 @@ async function sendOtpEmail({ email, fullName, otp }) {
     }
     throw new Error("Email delivery is not configured");
   }
+
+  if (!sender) {
+    const senderResponse = await fetch("https://api.brevo.com/v3/senders", {
+      headers: { accept: "application/json", "api-key": apiKey },
+    });
+    if (!senderResponse.ok) throw new Error("Unable to load Brevo senders");
+    const senderData = await senderResponse.json();
+    sender = selectBrevoSender(null, null, senderData.senders);
+  }
+
+  if (!sender) throw new Error("No active Brevo sender is available");
 
   const response = await fetch(
     "https://api.brevo.com/v3/smtp/email",
@@ -120,8 +136,8 @@ async function sendOtpEmail({ email, fullName, otp }) {
 
       body: JSON.stringify({
         sender: {
-          name: process.env.BREVO_SENDER_NAME || "HandiPlug",
-          email: senderEmail,
+          name: sender.name,
+          email: sender.email,
         },
 
         to: [
@@ -280,18 +296,11 @@ router.post(
 
       const { data: emailUsers, error: emailCheckError } = await supabase
         .from("users")
-        .select("id")
+        .select("id, verified, phone, password, verification_code_hash, verification_code_expires_at")
         .eq("email", normalizedEmail)
         .limit(1);
 
       if (emailCheckError) throw emailCheckError;
-
-      if (emailUsers?.length) {
-        return res.status(409).json({
-          error: "An account with this email already exists",
-          code: "EMAIL_EXISTS",
-        });
-      }
 
       const { data: phoneUsers, error: phoneCheckError } = await supabase
         .from("users")
@@ -300,10 +309,14 @@ router.post(
         .limit(1);
 
       if (phoneCheckError) throw phoneCheckError;
-      if (phoneUsers?.length) {
+
+      const existingEmailUser = emailUsers?.[0] || null;
+      const existingPhoneUser = phoneUsers?.[0] || null;
+      const conflict = registrationConflict(existingEmailUser, existingPhoneUser, normalizedPhone);
+      if (conflict?.code) {
         return res.status(409).json({
-          error: "An account with this phone number already exists",
-          code: "PHONE_EXISTS",
+          error: conflict.error,
+          code: conflict.code,
         });
       }
 
@@ -328,7 +341,7 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      const userId = generateId();
+      const userId = conflict?.userId || generateId();
 
       const hashedPassword =
         await bcrypt.hash(password, 10);
@@ -393,15 +406,11 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      const {
-        error: insertError,
-      } = await supabase
-        .from("users")
-        .insert([newUser]);
-
-      if (insertError) {
-        throw insertError;
-      }
+      const writeQuery = conflict?.action === "resume"
+        ? supabase.from("users").update(newUser).eq("id", userId)
+        : supabase.from("users").insert([newUser]);
+      const { error: writeError } = await writeQuery;
+      if (writeError) throw writeError;
 
       /*
       |--------------------------------------------------------------------------
@@ -412,10 +421,14 @@ router.post(
       try {
         await sendOtpEmail({ email: normalizedEmail, fullName, otp });
       } catch (emailError) {
-        const { error: rollbackError } = await supabase
-          .from("users")
-          .delete()
-          .eq("id", userId);
+        const rollbackQuery = conflict?.action === "resume"
+          ? supabase.from("users").update({
+              password: existingEmailUser.password,
+              verification_code_hash: existingEmailUser.verification_code_hash,
+              verification_code_expires_at: existingEmailUser.verification_code_expires_at,
+            }).eq("id", userId)
+          : supabase.from("users").delete().eq("id", userId);
+        const { error: rollbackError } = await rollbackQuery;
 
         if (rollbackError) console.error("Registration rollback failed:", rollbackError);
         throw emailError;
@@ -427,7 +440,7 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      return res.status(201).json({
+      return res.status(conflict?.action === "resume" ? 200 : 201).json({
         message:
           "Registration successful. Verification code sent to your email.",
 

@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import {
   normalizeEmail,
   normalizePhone,
+  registrationConflict,
+  selectBrevoSender,
   secureHashEqual,
   validateRegistration,
 } from "../lib/authSecurity.js";
@@ -34,4 +36,22 @@ test("OTP hashes compare safely and reject malformed hashes", () => {
   assert.equal(secureHashEqual(hash, hash), true);
   assert.equal(secureHashEqual(hash, "b".repeat(64)), false);
   assert.equal(secureHashEqual(hash, "bad"), false);
+});
+
+test("an unverified matching account resumes registration instead of returning 409", () => {
+  const emailUser = { id: "user-1", verified: false, phone: "08031234567" };
+  const phoneUser = { id: "user-1" };
+  assert.deepEqual(registrationConflict(emailUser, phoneUser, "08031234567"), { action: "resume", userId: "user-1" });
+  assert.equal(registrationConflict({ ...emailUser, verified: true }, phoneUser, "08031234567").code, "EMAIL_EXISTS");
+  assert.equal(registrationConflict(emailUser, { id: "other-user" }, "08031234567").code, "PHONE_EXISTS");
+});
+
+test("Brevo sender selection prefers configuration then an active account sender", () => {
+  const senders = [
+    { active: false, email: "old@example.com", name: "Old" },
+    { active: true, email: "verified@example.com", name: "Verified" },
+  ];
+  assert.deepEqual(selectBrevoSender("configured@example.com", "HandiPlug", senders), { email: "configured@example.com", name: "HandiPlug" });
+  assert.deepEqual(selectBrevoSender(null, null, senders), { email: "verified@example.com", name: "Verified" });
+  assert.equal(selectBrevoSender(null, null, []), null);
 });

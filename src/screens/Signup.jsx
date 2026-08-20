@@ -1,79 +1,147 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, PasswordInput, StatusSpace, TextInput, TogglePill } from "../components/UI";
+import { Button, StatusSpace, TextInput, TogglePill } from "../components/UI";
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Signup() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [role, setRole] = useState("I need a service");
-  const [values, setValues] = useState({ fullName: "", email: "", phone: "", homeAddress: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const update = (name) => (event) => {
-    setValues((current) => ({ ...current, [name]: event.target.value }));
-    setErrors((current) => ({ ...current, [name]: "", form: "" }));
-  };
+const submit = async () => {
+  setError("");
 
-  const validate = () => {
-    const next = {};
-    if (values.fullName.trim().length < 2) next.fullName = "Enter your full name.";
-    if (!emailPattern.test(values.email.trim())) next.email = "Enter a valid email address.";
-    if (values.phone.replace(/\D/g, "").length < 10) next.phone = "Enter a valid phone number.";
-    if (values.password.length < 8) next.password = "Use at least 8 characters.";
-    return next;
-  };
+  if (!fullName || !email || !phone || !password) {
+    setError("Please fill in all required fields (Full name, Email, Phone, Password).");
+    return;
+  }
 
-  const submit = async (event) => {
-    event.preventDefault();
-    const nextErrors = validate();
-    if (Object.keys(nextErrors).length) return setErrors(nextErrors);
+  setLoading(true);
 
-    setErrors({});
-    setLoading(true);
-    try {
-      const isArtisan = role === "I offer a service";
-      const result = await register({
-        fullName: values.fullName.trim(), email: values.email.trim().toLowerCase(), phone: values.phone.trim(),
-        password: values.password, address: values.homeAddress.trim(), role: isArtisan ? "artisan" : "customer",
-      });
-      navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, { state: { email: result.email || values.email.trim().toLowerCase() } });
-    } catch (error) {
-      const field = error.code === "EMAIL_EXISTS" ? "email" : error.code === "PHONE_EXISTS" ? "phone" : "form";
-      setErrors({ [field]: error.message || "We couldn’t create your account. Please try again." });
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const isArtisan = role === "I offer a service";
 
-  const form = (
-    <form className="auth-form auth-form--compact" onSubmit={submit} noValidate>
-      <fieldset className="auth-role-fieldset"><legend>I want to</legend><TogglePill variant="chip" options={["I need a service", "I offer a service"]} active={role} onChange={setRole} /></fieldset>
-      <div className="auth-field-grid">
-        <TextInput id="signup-name" name="fullName" plainLabel label="Full name" placeholder="e.g. Tolu Adeyemi" autoComplete="name" value={values.fullName} error={errors.fullName} onChange={update("fullName")} />
-        <TextInput id="signup-email" name="email" plainLabel label="Email address" placeholder="you@example.com" type="email" autoComplete="email" value={values.email} error={errors.email} onChange={update("email")} />
-        <TextInput id="signup-phone" name="phone" plainLabel label="Phone number" placeholder="0803 123 4567" type="tel" autoComplete="tel" value={values.phone} error={errors.phone} onChange={update("phone")} />
-        <TextInput id="signup-address" name="homeAddress" plainLabel label="Home address (optional)" placeholder="Your area in Lagos" autoComplete="street-address" value={values.homeAddress} onChange={update("homeAddress")} />
-      </div>
-      <PasswordInput id="signup-password" name="password" plainLabel label="Create password" placeholder="At least 8 characters" autoComplete="new-password" value={values.password} visible={showPassword} error={errors.password} hint="Use 8 or more characters." onToggleVisibility={() => setShowPassword((current) => !current)} onChange={update("password")} />
-      {errors.form && <div className="auth-alert" role="alert">{errors.form}</div>}
-      <p className="auth-terms">By continuing, you agree to HandiPlug’s Terms of Service and Privacy Policy.</p>
-      <Button type="submit" disabled={loading} aria-busy={loading}>{loading ? "Creating your account…" : "Create account"}</Button>
-      <p className="auth-switch">Already have an account? <button type="button" onClick={() => navigate("/login")}>Sign in</button></p>
-    </form>
+    await register({
+      fullName,
+      email,
+      phone,
+      password,
+      address: homeAddress,
+      role: isArtisan ? "artisan" : "customer",
+    });
+
+    navigate(`/otp?role=${isArtisan ? "artisan" : "customer"}`, {
+      state: { email },
+    });
+  } catch (err) {
+    setError(err.message || "Failed to create account or send verification code.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const Form = () => (
+    <>
+      <TogglePill variant="chip" options={["I need a service", "I offer a service"]} active={role} onChange={setRole} />
+      <TextInput
+        plainLabel
+        label="Full name"
+        icon="👤"
+        placeholder="Enter your full name"
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        />
+
+      <TextInput
+        plainLabel
+        label="Email address"
+        icon="📧"
+        placeholder="example@email.com"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <TextInput
+        plainLabel
+        label="Phone number"
+        icon="📞"
+        placeholder="080X XXX XXXX"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+      />
+
+      <TextInput
+        plainLabel
+        label="Home address"
+        icon="🏠"
+        placeholder="Enter your home address"
+        value={homeAddress}
+        onChange={(e) => setHomeAddress(e.target.value)}
+      />
+
+      <TextInput
+        plainLabel
+        label="Password"
+        icon="🔒"
+        placeholder="••••••••"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+      />
+
+      {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+    </>
   );
 
-  const header = <header className="auth-header"><span className="auth-eyebrow">Get started</span><h1>Create your account</h1><p>Book trusted professionals or grow your service business.</p></header>;
-
   return (
-    <main className="auth-page">
-      <div className="md:hidden auth-mobile auth-mobile--scroll"><StatusSpace /><section className="auth-mobile-content">{header}{form}</section></div>
-      <div className="hidden md:flex md:h-full md:w-full"><AuthSidePanel /><section className="auth-desktop-panel auth-desktop-panel--scroll"><div className="auth-card auth-card--wide">{header}{form}</div></section></div>
-    </main>
+    <div className="bg-white flex flex-col h-full w-full">
+      {/* ---------- MOBILE ---------- */}
+      <div className="md:hidden flex flex-col h-full w-full overflow-y-auto">
+        <StatusSpace />
+        <div className="flex flex-col gap-4 px-6 pt-[39px] pb-6">
+          <h1 className="text-[#1F2937] text-[32px] font-bold leading-[39px]">Create your account</h1>
+          <p className="text-[#6B7280] text-sm -mt-2">Join Lagos's trusted artisan community.</p>
+          {Form()}
+          <Button className="mt-2" onClick={submit} disabled={loading}>
+            {loading ? "Creating account..." : "→ Continue"}
+          </Button>
+          <div className="flex gap-1.5 items-center justify-center pt-1">
+            <span className="text-[#6B7280] text-sm">Already have an account?</span>
+            <button onClick={() => navigate("/login")} className="text-[#1C4CD1] text-sm font-semibold">Log in</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ---------- DESKTOP ---------- */}
+      <div className="hidden md:flex md:h-full md:w-full">
+        <AuthSidePanel />
+        <div className="w-1/2 flex items-center justify-center px-16">
+          <div className="w-full max-w-[440px] flex flex-col gap-5">
+            <div>
+              <h1 className="text-[#1F2937] text-[32px] font-bold">Create your account</h1>
+              <p className="text-[#6B7280] text-base mt-1">Join Lagos's trusted artisan community.</p>
+            </div>
+            {Form()}
+            <Button className="mt-1" onClick={submit} disabled={loading}>
+              {loading ? "Creating account..." : "→ Continue"}
+            </Button>
+            <div className="flex gap-1.5 items-center justify-center">
+              <span className="text-[#6B7280] text-sm">Already have an account?</span>
+              <button onClick={() => navigate("/login")} className="text-[#1C4CD1] text-sm font-semibold">Log in</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

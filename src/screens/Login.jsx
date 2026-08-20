@@ -1,62 +1,82 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button, PasswordInput, StatusSpace, TextInput } from "../components/UI";
+import { useNavigate } from "react-router-dom";
+import { Button, StatusSpace, TextInput } from "../components/UI";
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
-import { getPostAuthPath } from "../lib/auth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = async (event) => {
-    event.preventDefault();
-    const nextErrors = {};
-    if (!identifier.trim()) nextErrors.identifier = "Enter your email address or phone number.";
-    if (!password) nextErrors.password = "Enter your password.";
-    if (Object.keys(nextErrors).length) return setErrors(nextErrors);
-
-    setErrors({});
+  const submit = async () => {
+    setError("");
+    if (!email || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
     setLoading(true);
     try {
-      const user = await login(identifier, password);
-      navigate(location.state?.from?.pathname || getPostAuthPath(user), { replace: true });
-    } catch (error) {
-      if (error.code === "EMAIL_NOT_VERIFIED") {
-        navigate("/otp", { state: { email: error.response?.email || identifier.trim() }, replace: true });
-        return;
-      }
-      setErrors({ form: error.message || "We couldn’t sign you in. Please try again." });
+      const user = await login(email, password);
+      if (user.role === "admin") navigate("/admin");
+      else if (user.role === "artisan") navigate(user.trade ? "/artisan/dashboard" : "/artisan/build-profile");
+      else navigate("/home");
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const form = (
-    <form className="auth-form" onSubmit={submit} noValidate>
-      <TextInput id="login-identifier" name="identifier" plainLabel label="Email or phone number" placeholder="you@example.com" autoComplete="username" value={identifier} error={errors.identifier} onChange={(event) => { setIdentifier(event.target.value); setErrors((current) => ({ ...current, identifier: "", form: "" })); }} />
-      <PasswordInput id="login-password" name="password" plainLabel label="Password" placeholder="Enter your password" autoComplete="current-password" value={password} visible={showPassword} error={errors.password} onToggleVisibility={() => setShowPassword((current) => !current)} onChange={(event) => { setPassword(event.target.value); setErrors((current) => ({ ...current, password: "", form: "" })); }} />
-      <div className="auth-form-meta">
-        <button type="button" onClick={() => navigate("/forgot-password")} className="auth-link">Forgot password?</button>
+  const Form = () => (
+    <>
+      <TextInput plainLabel label="Email or Phone Number" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <TextInput plainLabel label="Password" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+      <div className="flex justify-end -mt-2">
+        <button onClick={() => navigate("/forgot-password")} className="text-[#6B7280] text-sm">Forgot Password?</button>
       </div>
-      {errors.form && <div className="auth-alert" role="alert">{errors.form}</div>}
-      <Button type="submit" disabled={loading} aria-busy={loading}>{loading ? "Signing in…" : "Sign in"}</Button>
-      <p className="auth-switch">New to HandiPlug? <button type="button" onClick={() => navigate("/signup")}>Create an account</button></p>
-    </form>
+      {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+    </>
   );
 
-  const header = <header className="auth-header"><span className="auth-eyebrow">Welcome back</span><h1>Sign in to HandiPlug</h1><p>Manage bookings, messages and payments in one secure place.</p></header>;
-
   return (
-    <main className="auth-page">
-      <div className="md:hidden auth-mobile"><StatusSpace /><section className="auth-mobile-content">{header}{form}</section></div>
-      <div className="hidden md:flex md:h-full md:w-full"><AuthSidePanel /><section className="auth-desktop-panel"><div className="auth-card">{header}{form}</div></section></div>
-    </main>
+    <div className="bg-white flex flex-col h-full w-full">
+      {/* ---------- MOBILE ---------- */}
+      <div className="md:hidden flex flex-col h-full w-full">
+        <StatusSpace />
+        <div className="flex-1 flex flex-col gap-4 px-6 pt-[39px]">
+          <h1 className="text-[#1F2937] text-[32px] font-bold leading-[38.4px]">Welcome Back</h1>
+          <div className="h-2" />
+          {Form()}
+          <div className="h-2" />
+          <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Login"}</Button>
+          <div className="flex gap-1.5 items-center justify-center pt-2">
+            <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
+            <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Create Account</button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ---------- DESKTOP ---------- */}
+      <div className="hidden md:flex md:h-full md:w-full">
+        <AuthSidePanel />
+        <div className="w-1/2 flex items-center justify-center px-16">
+          <div className="w-full max-w-[400px] flex flex-col gap-5">
+            <h1 className="text-[#1F2937] text-[32px] font-bold">Welcome Back</h1>
+            {Form()}
+            <Button onClick={submit} disabled={loading}>{loading ? "Logging in..." : "Log In"}</Button>
+            <div className="flex gap-1.5 items-center justify-center pt-2">
+              <span className="text-[#6B7280] text-sm">Don&apos;t have an account?</span>
+              <button onClick={() => navigate("/signup")} className="text-[#1C4CD1] text-sm font-semibold">Sign Up</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

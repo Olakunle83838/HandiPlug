@@ -5,7 +5,6 @@ import {
   useState,
 } from "react";
 import { api } from "../lib/api";
-import { normalizeIdentifier, normalizeOtpCredentials } from "../lib/auth";
 
 const STORAGE_KEY = "handiplug_auth";
 
@@ -25,6 +24,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function loadAuth() {
       let cachedToken = null;
+      let cachedUser = null;
 
       try {
         const raw =
@@ -37,8 +37,11 @@ export function AuthProvider({ children }) {
           cachedToken =
             parsed.token || null;
 
+          cachedUser =
+            parsed.user || null;
+
           setToken(cachedToken);
-          setUser(parsed.user || null);
+          setUser(cachedUser);
         }
       } catch (error) {
         console.error(
@@ -163,12 +166,18 @@ export function AuthProvider({ children }) {
   |--------------------------------------------------------------------------
   */
 
-  const verifyOtp = async (credentials) => {
-    const payload = normalizeOtpCredentials(credentials);
-    const { token: nextToken, user: nextUser } = await api.verifyOtp(payload);
+  const verifyOtp = async (email, otp) => {
+  const {
+    token: t,
+    user: u,
+  } = await api.verifyOtp({
+    email,
+    otp,
+  });
 
-    persist(nextToken, nextUser);
-    return nextUser;
+  persist(t, u);
+
+  return u;
   };
 
   /*
@@ -181,12 +190,11 @@ export function AuthProvider({ children }) {
     email,
     password
   ) => {
-    const identifier = normalizeIdentifier(email);
     const {
       token: nextToken,
       user: nextUser,
     } = await api.login({
-      email: identifier,
+      email,
       password,
     });
 
@@ -236,8 +244,6 @@ export function AuthProvider({ children }) {
 }
 
 
-// This hook intentionally lives with its provider to keep the public auth API together.
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx =
     useContext(AuthContext);

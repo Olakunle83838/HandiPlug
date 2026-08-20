@@ -94,22 +94,51 @@ export function Label({ children }) {
   );
 }
 
-export function TextInput({ label, icon, plainLabel = false, ...props }) {
+export function TextInput({ label, icon, plainLabel = false, error, hint, trailing, id, ...props }) {
+  const inputId = id || props.name;
+  const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
+
   return (
     <div className="flex flex-col gap-2 w-full">
       {label && (plainLabel ? (
-        <p className="text-[14px] font-medium text-[#1F2937]">{label}</p>
+        <label htmlFor={inputId} className="text-[14px] font-medium text-[#1F2937]">{label}</label>
       ) : (
         <Label>{label}</Label>
       ))}
-      <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-[10px] h-[52px] px-[17px] w-full focus-within:border-[#FF7A00]">
-        {icon && <span className="text-base shrink-0">{icon}</span>}
+      <div className={`auth-input-shell ${error ? "auth-input-shell--error" : ""}`}>
+        {icon && <span className="auth-input-icon" aria-hidden="true">{icon}</span>}
         <input
+          id={inputId}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
           className="w-full outline-none text-[16px] text-[#1F2937] placeholder:text-[#9CA3AF] bg-transparent"
           {...props}
         />
+        {trailing}
       </div>
+      {error && <p id={`${inputId}-error`} className="auth-field-error">{error}</p>}
+      {!error && hint && <p id={`${inputId}-hint`} className="auth-field-hint">{hint}</p>}
     </div>
+  );
+}
+
+export function PasswordInput({ visible, onToggleVisibility, ...props }) {
+  return (
+    <TextInput
+      {...props}
+      type={visible ? "text" : "password"}
+      trailing={(
+        <button
+          type="button"
+          className="auth-password-toggle"
+          onClick={onToggleVisibility}
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+        >
+          {visible ? "Hide" : "Show"}
+        </button>
+      )}
+    />
   );
 }
 

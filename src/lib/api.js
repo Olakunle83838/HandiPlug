@@ -40,7 +40,7 @@ async function request(
             : undefined,
       }
     );
-  } catch (err) {
+  } catch {
     const error = new Error(
       "Can't reach the HandiPlug server. Is it running?"
     );
@@ -66,6 +66,8 @@ async function request(
 
     error.code =
       data.code;
+
+    error.response = data;
 
     throw error;
   }

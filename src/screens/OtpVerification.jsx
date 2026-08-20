@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button, StatusSpace } from "../components/UI";
 import AuthSidePanel from "../components/AuthSidePanel";
 import { useAuth } from "../context/AuthContext";
@@ -8,11 +8,9 @@ import { api } from "../lib/api";
 export default function OtpVerification() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [params] = useSearchParams();
   const { verifyOtp } = useAuth();
   
   const email = location.state?.email || "";
-  const role = params.get("role") || "customer";
   
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [seconds, setSeconds] = useState(60);
@@ -32,16 +30,8 @@ export default function OtpVerification() {
     }
   }, [seconds]);
 
-  const handleChange = (i, val) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
-    next[i] = val;
-    setOtp(next);
-    if (val && i < 5) document.getElementById(`otp-${i + 1}`)?.focus();
-  };
-
-  const submitOtp = async () => {
-    const code = otp.join("");
+  const submitOtp = async (overrideCode) => {
+    const code = typeof overrideCode === "string" ? overrideCode : otp.join("");
     if (code.length < 6) {
       setError("Please enter the full 6-digit code");
       return;
@@ -57,6 +47,30 @@ export default function OtpVerification() {
       setError(err.message || "Invalid or expired OTP");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChange = (i, val) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...otp];
+    next[i] = val;
+    setOtp(next);
+    
+    if (val) {
+      if (i < 5) {
+        document.getElementById(`otp-${i + 1}`)?.focus();
+      } else {
+        const code = next.join("");
+        if (code.length === 6) {
+          submitOtp(code);
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (i, e) => {
+    if (e.key === "Backspace" && !otp[i] && i > 0) {
+      document.getElementById(`otp-${i - 1}`)?.focus();
     }
   };
 
@@ -79,6 +93,7 @@ export default function OtpVerification() {
           id={`otp-${i}`}
           value={digit}
           onChange={(e) => handleChange(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
           maxLength={1}
           inputMode="numeric"
           style={{ width: size, height: size + 8 }}

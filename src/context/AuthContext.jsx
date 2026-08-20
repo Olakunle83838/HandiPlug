@@ -166,17 +166,19 @@ export function AuthProvider({ children }) {
   |--------------------------------------------------------------------------
   */
 
-  const verifyOtp = async (
+  const verifyOtp = async (email, otp) => {
+  const {
+    token: t,
+    user: u,
+  } = await api.verifyOtp({
     email,
-    otp
-  ) => {
-    const {
-      token: nextToken,
-      user: nextUser,
-    } = await api.verifyOtp({
-      email,
-      otp,
-    });
+    otp,
+  });
+
+  persist(t, u);
+
+  return u;
+  };
 
     /*
      * JWT is only received after
@@ -252,7 +254,7 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
+
 
 export function useAuth() {
   const ctx =

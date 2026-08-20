@@ -90,8 +90,7 @@ export default function OtpVerification() {
 
     try {
       const user = await verifyOtp({
-        email,
-        otp: code,
+        email, code,
       });
 
       // Redirect according to actual user role

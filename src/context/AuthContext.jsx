@@ -180,19 +180,6 @@ export function AuthProvider({ children }) {
   return u;
   };
 
-    /*
-     * JWT is only received after
-     * successful OTP verification.
-     */
-
-    persist(
-      nextToken,
-      nextUser
-    );
-
-    return nextUser;
-  };
-
   /*
   |--------------------------------------------------------------------------
   | LOGIN
@@ -254,6 +241,7 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+}
 
 
 export function useAuth() {

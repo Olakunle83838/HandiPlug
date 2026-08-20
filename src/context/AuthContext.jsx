@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import { api } from "../lib/api";
+import { createOtpPayload } from "../lib/otpPayload";
 
 const STORAGE_KEY = "handiplug_auth";
 
@@ -24,7 +25,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function loadAuth() {
       let cachedToken = null;
-      let cachedUser = null;
 
       try {
         const raw =
@@ -37,11 +37,8 @@ export function AuthProvider({ children }) {
           cachedToken =
             parsed.token || null;
 
-          cachedUser =
-            parsed.user || null;
-
           setToken(cachedToken);
-          setUser(cachedUser);
+          setUser(parsed.user || null);
         }
       } catch (error) {
         console.error(
@@ -166,18 +163,12 @@ export function AuthProvider({ children }) {
   |--------------------------------------------------------------------------
   */
 
-  const verifyOtp = async (email, otp) => {
-  const {
-    token: t,
-    user: u,
-  } = await api.verifyOtp({
-    email,
-    otp,
-  });
+  const verifyOtp = async (credentials) => {
+    const payload = createOtpPayload(credentials);
+    const { token: nextToken, user: nextUser } = await api.verifyOtp(payload);
 
-  persist(t, u);
-
-  return u;
+    persist(nextToken, nextUser);
+    return nextUser;
   };
 
   /*
@@ -244,6 +235,7 @@ export function AuthProvider({ children }) {
 }
 
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx =
     useContext(AuthContext);

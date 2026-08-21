@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
 
 const STORAGE_KEY = "handiplug_auth";
@@ -15,58 +10,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isHydrating, setIsHydrating] = useState(true);
 
-  /*
-  |--------------------------------------------------------------------------
-  | LOAD SAVED AUTHENTICATION
-  |--------------------------------------------------------------------------
-  */
-
   useEffect(() => {
     async function loadAuth() {
       let cachedToken = null;
       let cachedUser = null;
 
       try {
-        const raw =
-          localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
 
         if (raw) {
-          const parsed =
-            JSON.parse(raw);
+          const parsed = JSON.parse(raw);
 
-          cachedToken =
-            parsed.token || null;
-
-          cachedUser =
-            parsed.user || null;
+          cachedToken = parsed.token || null;
+          cachedUser = parsed.user || null;
 
           setToken(cachedToken);
           setUser(cachedUser);
         }
-      } catch (error) {
-        console.error(
-          "Failed to read saved authentication:",
-          error
-        );
-
-        localStorage.removeItem(
-          STORAGE_KEY
-        );
+      } catch (err) {
+        console.error("Failed to load saved authentication:", err);
+        localStorage.removeItem(STORAGE_KEY);
       }
 
       /*
-      |--------------------------------------------------------------------------
-      | Refresh user from backend
-      |--------------------------------------------------------------------------
-      */
-
+       * If a token exists, verify it against the backend.
+       */
       if (cachedToken) {
         try {
-          const {
-            user: refreshedUser,
-          } = await api.me(
-            cachedToken
-          );
+          const response = await api.me(cachedToken);
+
+          const refreshedUser = response.user;
 
           setUser(refreshedUser);
 
@@ -77,29 +50,21 @@ export function AuthProvider({ children }) {
               user: refreshedUser,
             })
           );
-        } catch (error) {
-          console.error(
-            "Authentication hydration failed:",
-            error
-          );
+        } catch (err) {
+          console.error("Authentication hydration failed:", err);
 
           /*
-          |--------------------------------------------------------------------------
-          | Only clear the token for actual authentication failures
-          |--------------------------------------------------------------------------
-          */
-
+           * If the backend says the token is invalid,
+           * clear the saved authentication.
+           */
           if (
-            error.status &&
-            error.status >= 400 &&
-            error.status < 500
+            err.status &&
+            err.status >= 400 &&
+            err.status < 500
           ) {
             setToken(null);
             setUser(null);
-
-            localStorage.removeItem(
-              STORAGE_KEY
-            );
+            localStorage.removeItem(STORAGE_KEY);
           }
         }
       }
@@ -111,15 +76,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   /*
-  |--------------------------------------------------------------------------
-  | SAVE AUTHENTICATION
-  |--------------------------------------------------------------------------
-  */
-
-  const persist = (
-    nextToken,
-    nextUser
-  ) => {
+   * Save authentication information.
+   */
+  const persist = (nextToken, nextUser) => {
     setToken(nextToken);
     setUser(nextUser);
 
@@ -132,111 +91,59 @@ export function AuthProvider({ children }) {
         })
       );
     } else {
-      localStorage.removeItem(
-        STORAGE_KEY
-      );
+      localStorage.removeItem(STORAGE_KEY);
     }
   };
 
   /*
-  |--------------------------------------------------------------------------
-  | REGISTER
-  |--------------------------------------------------------------------------
-  */
+   * REGISTER
+   */
+  const register = async (payload) => {
+    const response = await api.register(payload);
 
-  const register = async (
-    payload
-  ) => {
-    /*
-     * Registration does NOT create a JWT.
-     *
-     * The backend creates the user,
-     * generates the OTP and sends it
-     * through Brevo.
-     */
-
-    return await api.register(
-      payload
-    );
+    return response;
   };
 
   /*
-  |--------------------------------------------------------------------------
-  | VERIFY OTP
-  |--------------------------------------------------------------------------
-  */
-
+   * VERIFY OTP
+   */
   const verifyOtp = async (email, otp) => {
-  const {
-    token: t,
-    user: u,
-  } = await api.verifyOtp({
-    email,
-    otp,
-  });
+    const response = await api.verifyOtp({
+      email,
+      otp,
+    });
 
-  persist(t, u);
+    const nextToken = response.token;
+    const nextUser = response.user;
 
-  return u;
-  };
-
-    /*
-     * JWT is only received after
-     * successful OTP verification.
-     */
-
-    persist(
-      nextToken,
-      nextUser
-    );
+    persist(nextToken, nextUser);
 
     return nextUser;
   };
 
   /*
-  |--------------------------------------------------------------------------
-  | LOGIN
-  |--------------------------------------------------------------------------
-  */
-
-  const login = async (
-    email,
-    password
-  ) => {
-    const {
-      token: nextToken,
-      user: nextUser,
-    } = await api.login({
+   * LOGIN
+   */
+  const login = async (email, password) => {
+    const response = await api.login({
       email,
       password,
     });
 
-    persist(
-      nextToken,
-      nextUser
-    );
+    const nextToken = response.token;
+    const nextUser = response.user;
+
+    persist(nextToken, nextUser);
 
     return nextUser;
   };
 
   /*
-  |--------------------------------------------------------------------------
-  | LOGOUT
-  |--------------------------------------------------------------------------
-  */
-
+   * LOGOUT
+   */
   const logout = () => {
-    persist(
-      null,
-      null
-    );
+    persist(null, null);
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | CONTEXT
-  |--------------------------------------------------------------------------
-  */
 
   return (
     <AuthContext.Provider
@@ -254,17 +161,16 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-
+}
 
 export function useAuth() {
-  const ctx =
-    useContext(AuthContext);
+  const context = useContext(AuthContext);
 
-  if (!ctx) {
+  if (!context) {
     throw new Error(
       "useAuth must be used within AuthProvider"
     );
   }
 
-  return ctx;
+  return context;
 }

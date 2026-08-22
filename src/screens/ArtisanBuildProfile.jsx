@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Label, Button, Avatar, TextInput } from "../components/UI";
 import TopNav from "../components/TopNav";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 const TRADE_OPTIONS = [
   { icon: "🔨", label: "Carpenter" },
@@ -17,16 +19,16 @@ const TRADE_OPTIONS = [
 ];
 
 const EXPERIENCE_OPTIONS = [
-  { icon: "📈", label: "Less than 1 year" },
-  { icon: "📈", label: "1 year" },
-  { icon: "📈", label: "2 years" },
-  { icon: "📈", label: "3 years" },
-  { icon: "📈", label: "4 years" },
-  { icon: "📈", label: "5 years" },
-  { icon: "📈", label: "6 years" },
-  { icon: "📈", label: "7 years" },
-  { icon: "📈", label: "8-10 years" },
-  { icon: "📈", label: "10+ years" },
+  { icon: "📈", label: "Less than 1 year", years: 0 },
+  { icon: "📈", label: "1 year", years: 1 },
+  { icon: "📈", label: "2 years", years: 2 },
+  { icon: "📈", label: "3 years", years: 3 },
+  { icon: "📈", label: "4 years", years: 4 },
+  { icon: "📈", label: "5 years", years: 5 },
+  { icon: "📈", label: "6 years", years: 6 },
+  { icon: "📈", label: "7 years", years: 7 },
+  { icon: "📈", label: "8-10 years", years: 9 },
+  { icon: "📈", label: "10+ years", years: 10 },
 ];
 
 // Custom dropdown: icon + label travel together as one unit, both in the
@@ -88,11 +90,19 @@ function Dropdown({ label, options, selected, onSelect }) {
 
 export default function ArtisanBuildProfile() {
   const navigate = useNavigate();
+  const { token, user } = useAuth();
 
   const [trade, setTrade] = useState(TRADE_OPTIONS[0]);
   const [experience, setExperience] = useState(EXPERIENCE_OPTIONS[6]);
+  const [bio, setBio] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("8000");
+
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
@@ -103,18 +113,48 @@ export default function ArtisanBuildProfile() {
       return;
     }
 
-    // Basic size guard (5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("Image is too large. Please choose a file under 5MB.");
       return;
     }
 
+    setPhotoFile(file);
+
     const reader = new FileReader();
     reader.onload = () => setPhotoPreview(reader.result);
     reader.readAsDataURL(file);
+  };
 
-    // TODO: also upload `file` to your backend/storage here and
-    // save the returned URL against the artisan's profile.
+  const handleNext = async () => {
+    setError("");
+    setSaving(true);
+
+    try {
+      // Upload the photo first (if a new one was chosen)
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append("avatar", photoFile);
+        await api.uploadAvatar(formData, token);
+      }
+
+      // Save trade, experience, bio, and hourly rate
+      await api.updateProfile(
+        {
+          trade: trade.label,
+          yearsExperience: experience.years,
+          bio,
+          hourlyRate: Number(hourlyRate) || 0,
+        },
+        token
+      );
+
+      navigate("/artisan/portfolio");
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+      setError(err?.message || "Failed to save your profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const ProfilePhoto = ({ size = 110 }) => (
@@ -149,8 +189,13 @@ export default function ArtisanBuildProfile() {
   const Bio = () => (
     <div className="flex flex-col gap-2">
       <Label>Bio</Label>
-      <textarea rows={4} placeholder="Tell customers about your craft, style and experience"
-        className="border border-[#E5E7EB] rounded-[10px] p-4 text-[16px] text-[#1F2937] placeholder:text-[#9CA3AF] outline-none focus:border-[#FF7A00] resize-none" />
+      <textarea
+        rows={4}
+        value={bio}
+        onChange={(e) => setBio(e.target.value)}
+        placeholder="Tell customers about your craft, style and experience"
+        className="border border-[#E5E7EB] rounded-[10px] p-4 text-[16px] text-[#1F2937] placeholder:text-[#9CA3AF] outline-none focus:border-[#FF7A00] resize-none"
+      />
     </div>
   );
 
@@ -183,10 +228,19 @@ export default function ArtisanBuildProfile() {
           />
 
           {Bio()}
-          <TextInput label="Hourly Rate" defaultValue="₦8,000/hr" />
+
+          <TextInput
+            label="Hourly Rate"
+            value={hourlyRate}
+            onChange={(e) => setHourlyRate(e.target.value)}
+          />
+
+          {error && <p className="text-[#EF4444] text-sm">{error}</p>}
         </div>
         <div className="p-6">
-          <Button onClick={() => navigate("/artisan/portfolio")}>Next</Button>
+          <Button onClick={handleNext} disabled={saving}>
+            {saving ? "Saving..." : "Next"}
+          </Button>
         </div>
       </div>
 
@@ -219,8 +273,18 @@ export default function ArtisanBuildProfile() {
             </div>
 
             {Bio()}
-            <TextInput label="Hourly Rate" defaultValue="₦8,000/hr" />
-            <Button onClick={() => navigate("/artisan/portfolio")}>Next</Button>
+
+            <TextInput
+              label="Hourly Rate"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+            />
+
+            {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+
+            <Button onClick={handleNext} disabled={saving}>
+              {saving ? "Saving..." : "Next"}
+            </Button>
           </div>
         </div>
       </div>

@@ -30,7 +30,6 @@ const authLimiter = rateLimit({
     code: "RATE_LIMITED",
   },
 
-  // Vercel/proxy compatibility
   validate: {
     forwardedHeader: false,
   },
@@ -45,7 +44,6 @@ const otpLimiter = rateLimit({
     code: "RATE_LIMITED",
   },
 
-  // Vercel/proxy compatibility
   validate: {
     forwardedHeader: false,
   },
@@ -265,12 +263,6 @@ router.post(
     const { trade } = req.body;
     const validation = validateRegistration(req.body);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
-
     if (validation.error) {
       return res.status(400).json({
         error: validation.error,
@@ -288,15 +280,9 @@ router.post(
     } = validation.value;
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | Check existing account
-      |--------------------------------------------------------------------------
-      */
-
       const { data: emailUsers, error: emailCheckError } = await supabase
         .from("users")
-        .select("id, verified, phone, password, verification_code_hash, verification_code_expires_at")
+        .select("id, emailVerified, phone, password, verification_code_hash, verification_code_expires_at")
         .eq("email", normalizedEmail)
         .limit(1);
 
@@ -320,103 +306,54 @@ router.post(
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Generate OTP
-      |--------------------------------------------------------------------------
-      */
-
       const otp = generateOtp();
-
       const otpHash = hashOtp(otp);
-
-      const otpExpiresAt =
-        new Date(
-          Date.now() + 10 * 60 * 1000
-        ).toISOString();
-
-      /*
-      |--------------------------------------------------------------------------
-      | Create user
-      |--------------------------------------------------------------------------
-      */
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
       const userId = conflict?.userId || generateId();
-
-      const hashedPassword =
-        await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = {
         id: userId,
-
         role,
-
-        fullName:
-          fullName.trim(),
-
-        email:
-          normalizedEmail,
-
+        fullName: fullName.trim(),
+        email: normalizedEmail,
         phone: normalizedPhone,
+        address: address || null,
+        password: hashedPassword,
 
-        address:
-          address || null,
+        // emailVerified: has this person confirmed their email OTP?
+        // Required just to log in and use the app at all.
+        emailVerified: false,
 
-        password:
-          hashedPassword,
+        // verified: has an ADMIN approved this artisan's KYC submission?
+        // Only ever set true by the admin approval route — never here,
+        // and never by OTP verification.
+        verified: false,
 
-        verified:
-          false,
-
-        verification_code_hash:
-          otpHash,
-
-        verification_code_expires_at:
-          otpExpiresAt,
-
-        isSuspended:
-          false,
-
-        createdAt:
-          new Date().toISOString(),
+        verification_code_hash: otpHash,
+        verification_code_expires_at: otpExpiresAt,
+        isSuspended: false,
+        createdAt: new Date().toISOString(),
 
         ...(role === "artisan"
           ? {
-              trade:
-                trade || null,
-
+              trade: trade || null,
               area: null,
-
               yearsExperience: 0,
-
               bio: null,
-
               hourlyRate: 0,
-
               rating: 0,
-
               reviewCount: 0,
             }
           : {}),
       };
-
-      /*
-      |--------------------------------------------------------------------------
-      | Insert user into Supabase database
-      |--------------------------------------------------------------------------
-      */
 
       const writeQuery = conflict?.action === "resume"
         ? supabase.from("users").update(newUser).eq("id", userId)
         : supabase.from("users").insert([newUser]);
       const { error: writeError } = await writeQuery;
       if (writeError) throw writeError;
-
-      /*
-      |--------------------------------------------------------------------------
-      | Send OTP using Brevo
-      |--------------------------------------------------------------------------
-      */
 
       try {
         await sendOtpEmail({ email: normalizedEmail, fullName, otp });
@@ -434,34 +371,18 @@ router.post(
         throw emailError;
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Registration successful
-      |--------------------------------------------------------------------------
-      */
-
       return res.status(conflict?.action === "resume" ? 200 : 201).json({
-        message:
-          "Registration successful. Verification code sent to your email.",
-
-        requiresVerification:
-          true,
-
-        email:
-          normalizedEmail,
+        message: "Registration successful. Verification code sent to your email.",
+        requiresVerification: true,
+        email: normalizedEmail,
       });
 
     } catch (error) {
-      console.error(
-        "Registration error:",
-        error
-      );
+      console.error("Registration error:", error);
 
       return res.status(500).json({
         error: "Unable to create account. Please try again.",
-
-        code:
-          "REGISTRATION_ERROR",
+        code: "REGISTRATION_ERROR",
       });
     }
   }
@@ -477,26 +398,19 @@ router.post(
   "/verify-otp",
   otpLimiter,
   async (req, res) => {
-    const {
-      email,
-      otp,
-    } = req.body;
+    const { email, otp } = req.body;
 
     if (!email || typeof otp !== "string") {
       return res.status(400).json({
-        error:
-          "Email and OTP are required",
-        code:
-          "VALIDATION_ERROR",
+        error: "Email and OTP are required",
+        code: "VALIDATION_ERROR",
       });
     }
 
     if (!/^\d{6}$/.test(otp)) {
       return res.status(400).json({
-        error:
-          "OTP must be a 6-digit code",
-        code:
-          "INVALID_OTP_FORMAT",
+        error: "OTP must be a 6-digit code",
+        code: "INVALID_OTP_FORMAT",
       });
     }
 
@@ -506,174 +420,86 @@ router.post(
     }
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | Find user
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        data: users,
-        error: fetchError,
-      } = await supabase
+      const { data: users, error: fetchError } = await supabase
         .from("users")
         .select("*")
-        .ilike(
-          "email",
-          normalizedEmail
-        )
+        .ilike("email", normalizedEmail)
         .limit(1);
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
 
-      const user =
-        users?.[0];
+      const user = users?.[0];
 
       if (!user) {
         return res.status(404).json({
-          error:
-            "Account not found",
-          code:
-            "ACCOUNT_NOT_FOUND",
+          error: "Account not found",
+          code: "ACCOUNT_NOT_FOUND",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Already verified?
-      |--------------------------------------------------------------------------
-      */
-
-      if (user.verified) {
+      if (user.emailVerified) {
         return res.status(400).json({
-          error:
-            "Account is already verified",
-          code:
-            "ALREADY_VERIFIED",
+          error: "Account is already verified",
+          code: "ALREADY_VERIFIED",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Check OTP exists
-      |--------------------------------------------------------------------------
-      */
-
-      if (
-        !user.verification_code_hash
-      ) {
+      if (!user.verification_code_hash) {
         return res.status(400).json({
-          error:
-            "No verification code exists. Please request a new code.",
-          code:
-            "OTP_NOT_FOUND",
+          error: "No verification code exists. Please request a new code.",
+          code: "OTP_NOT_FOUND",
         });
       }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Check expiration
-      |--------------------------------------------------------------------------
-      */
 
       if (
         !user.verification_code_expires_at ||
-        new Date(
-          user.verification_code_expires_at
-        ) < new Date()
+        new Date(user.verification_code_expires_at) < new Date()
       ) {
         return res.status(400).json({
-          error:
-            "Verification code has expired. Please request a new code.",
-          code:
-            "OTP_EXPIRED",
+          error: "Verification code has expired. Please request a new code.",
+          code: "OTP_EXPIRED",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Compare OTP
-      |--------------------------------------------------------------------------
-      */
-
-      const submittedHash =
-        hashOtp(otp);
+      const submittedHash = hashOtp(otp);
 
       if (!secureHashEqual(submittedHash, user.verification_code_hash)) {
         return res.status(400).json({
-          error:
-            "Invalid verification code",
-          code:
-            "OTP_INVALID",
+          error: "Invalid verification code",
+          code: "OTP_INVALID",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Mark account as verified
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        data: updatedUser,
-        error: updateError,
-      } = await supabase
+      // Mark EMAIL as verified — this is distinct from the `verified`
+      // column, which represents admin KYC approval and is never
+      // touched here.
+      const { data: updatedUser, error: updateError } = await supabase
         .from("users")
         .update({
-          verified:
-            true,
-
-          verification_code_hash:
-            null,
-
-          verification_code_expires_at:
-            null,
+          emailVerified: true,
+          verification_code_hash: null,
+          verification_code_expires_at: null,
         })
-        .eq(
-          "id",
-          user.id
-        )
+        .eq("id", user.id)
         .select()
         .single();
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      /*
-      |--------------------------------------------------------------------------
-      | Create JWT
-      |--------------------------------------------------------------------------
-      */
-
-      const token =
-        signToken(updatedUser);
+      const token = signToken(updatedUser);
 
       return res.json({
-        message:
-          "Email verified successfully",
-
+        message: "Email verified successfully",
         token,
-
-        user:
-          publicUser(updatedUser),
+        user: publicUser(updatedUser),
       });
 
     } catch (error) {
-      console.error(
-        "OTP verification error:",
-        error
-      );
+      console.error("OTP verification error:", error);
 
       return res.status(500).json({
-        error:
-          error.message ||
-          "Server error during OTP verification",
-
-        code:
-          "OTP_VERIFICATION_ERROR",
+        error: error.message || "Server error during OTP verification",
+        code: "OTP_VERIFICATION_ERROR",
       });
     }
   }
@@ -689,15 +515,12 @@ router.post(
   "/resend-otp",
   otpLimiter,
   async (req, res) => {
-    const { email } =
-      req.body;
+    const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({
-        error:
-          "Email is required",
-        code:
-          "VALIDATION_ERROR",
+        error: "Email is required",
+        code: "VALIDATION_ERROR",
       });
     }
 
@@ -707,99 +530,43 @@ router.post(
     }
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | Find account
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        data: users,
-        error: fetchError,
-      } = await supabase
+      const { data: users, error: fetchError } = await supabase
         .from("users")
-        .select(
-          "id, email, fullName, verified, verification_code_hash, verification_code_expires_at"
-        )
-        .ilike(
-          "email",
-          normalizedEmail
-        )
+        .select("id, email, fullName, emailVerified, verification_code_hash, verification_code_expires_at")
+        .ilike("email", normalizedEmail)
         .limit(1);
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
 
-      const user =
-        users?.[0];
+      const user = users?.[0];
 
       if (!user) {
         return res.status(404).json({
-          error:
-            "Account not found",
-          code:
-            "ACCOUNT_NOT_FOUND",
+          error: "Account not found",
+          code: "ACCOUNT_NOT_FOUND",
         });
       }
 
-      if (user.verified) {
+      if (user.emailVerified) {
         return res.status(400).json({
-          error:
-            "Account is already verified",
-          code:
-            "ALREADY_VERIFIED",
+          error: "Account is already verified",
+          code: "ALREADY_VERIFIED",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Generate new OTP
-      |--------------------------------------------------------------------------
-      */
+      const otp = generateOtp();
+      const otpHash = hashOtp(otp);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-      const otp =
-        generateOtp();
-
-      const otpHash =
-        hashOtp(otp);
-
-      const expiresAt =
-        new Date(
-          Date.now() + 10 * 60 * 1000
-        ).toISOString();
-
-      /*
-      |--------------------------------------------------------------------------
-      | Update OTP in database
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        error: updateError,
-      } = await supabase
+      const { error: updateError } = await supabase
         .from("users")
         .update({
-          verification_code_hash:
-            otpHash,
-
-          verification_code_expires_at:
-            expiresAt,
+          verification_code_hash: otpHash,
+          verification_code_expires_at: expiresAt,
         })
-        .eq(
-          "id",
-          user.id
-        );
+        .eq("id", user.id);
 
-      if (updateError) {
-        throw updateError;
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Send new OTP through Brevo
-      |--------------------------------------------------------------------------
-      */
+      if (updateError) throw updateError;
 
       try {
         await sendOtpEmail({ email: normalizedEmail, fullName: user.fullName, otp });
@@ -817,23 +584,15 @@ router.post(
       }
 
       return res.json({
-        message:
-          "Verification code resent successfully",
+        message: "Verification code resent successfully",
       });
 
     } catch (error) {
-      console.error(
-        "Resend OTP error:",
-        error
-      );
+      console.error("Resend OTP error:", error);
 
       return res.status(500).json({
-        error:
-          error.message ||
-          "Failed to resend verification code",
-
-        code:
-          "RESEND_OTP_ERROR",
+        error: error.message || "Failed to resend verification code",
+        code: "RESEND_OTP_ERROR",
       });
     }
   }
@@ -849,23 +608,14 @@ router.post(
   "/login",
   authLimiter,
   async (req, res) => {
-    const {
-      email,
-      phone,
-      password,
-    } = req.body;
+    const { email, phone, password } = req.body;
 
     const rawIdentifier = email || phone;
 
-    if (
-      !rawIdentifier ||
-      !password
-    ) {
+    if (!rawIdentifier || !password) {
       return res.status(400).json({
-        error:
-          "Email/phone and password are required",
-        code:
-          "VALIDATION_ERROR",
+        error: "Email/phone and password are required",
+        code: "VALIDATION_ERROR",
       });
     }
 
@@ -881,88 +631,58 @@ router.post(
     }
 
     try {
-      const {
-        data: users,
-        error,
-      } = await supabase
+      const { data: users, error } = await supabase
         .from("users")
         .select("*")
         .eq(isEmail ? "email" : "phone", normalizedIdentifier)
         .limit(1);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      const user =
-        users?.[0];
+      const user = users?.[0];
 
       if (!user) {
         return res.status(401).json({
-          error:
-            "Invalid email/phone or password",
-          code:
-            "INVALID_CREDENTIALS",
+          error: "Invalid email/phone or password",
+          code: "INVALID_CREDENTIALS",
         });
       }
 
-      const passwordMatches =
-        await bcrypt.compare(
-          password,
-          user.password
-        );
+      const passwordMatches = await bcrypt.compare(password, user.password);
 
       if (!passwordMatches) {
         return res.status(401).json({
-          error:
-            "Invalid email/phone or password",
-          code:
-            "INVALID_CREDENTIALS",
+          error: "Invalid email/phone or password",
+          code: "INVALID_CREDENTIALS",
         });
       }
 
       if (user.isSuspended) {
         return res.status(403).json({
-          error:
-            "This account has been suspended",
-          code:
-            "ACCOUNT_SUSPENDED",
+          error: "This account has been suspended",
+          code: "ACCOUNT_SUSPENDED",
         });
       }
 
-      if (!user.verified) {
+      // Gate login on EMAIL verification only. Admin KYC approval
+      // (`verified`) is a separate, later step and never blocks login.
+      if (!user.emailVerified) {
         return res.status(403).json({
-          error:
-            "Please verify your email before logging in",
-
-          code:
-            "EMAIL_NOT_VERIFIED",
-
-          requiresVerification:
-            true,
-
-          email:
-            user.email,
+          error: "Please verify your email before logging in",
+          code: "EMAIL_NOT_VERIFIED",
+          requiresVerification: true,
+          email: user.email,
         });
       }
 
-      return issueAuthToken(
-        user,
-        res
-      );
+      return issueAuthToken(user, res);
 
     } catch (error) {
-      console.error(
-        "Login error:",
-        error
-      );
+      console.error("Login error:", error);
 
       return res.status(500).json({
-        error:
-          "Server error during login",
-
-        code:
-          "LOGIN_ERROR",
+        error: "Server error during login",
+        code: "LOGIN_ERROR",
       });
     }
   }
@@ -979,52 +699,34 @@ router.get(
   requireAuth,
   async (req, res) => {
     try {
-      const {
-        data: user,
-        error,
-      } = await supabase
+      const { data: user, error } = await supabase
         .from("users")
         .select("*")
-        .eq(
-          "id",
-          req.auth.id
-        )
+        .eq("id", req.auth.id)
         .single();
 
       if (error || !user) {
         return res.status(404).json({
-          error:
-            "User not found",
-          code:
-            "ACCOUNT_NOT_FOUND",
+          error: "User not found",
+          code: "ACCOUNT_NOT_FOUND",
         });
       }
 
       if (user.isSuspended) {
         return res.status(403).json({
-          error:
-            "Account suspended",
-          code:
-            "ACCOUNT_SUSPENDED",
+          error: "Account suspended",
+          code: "ACCOUNT_SUSPENDED",
         });
       }
 
-      return res.json({
-        user:
-          publicUser(user),
-      });
+      return res.json({ user: publicUser(user) });
 
     } catch (error) {
-      console.error(
-        "Get current user error:",
-        error
-      );
+      console.error("Get current user error:", error);
 
       return res.status(500).json({
-        error:
-          "Server error",
-        code:
-          "SERVER_ERROR",
+        error: "Server error",
+        code: "SERVER_ERROR",
       });
     }
   }
@@ -1040,8 +742,7 @@ router.post(
   "/forgot-password",
   authLimiter,
   async (req, res) => {
-    const { email } =
-      req.body;
+    const { email } = req.body;
 
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) {
@@ -1052,37 +753,24 @@ router.post(
     }
 
     try {
-      const {
-        data: users,
-        error,
-      } = await supabase
+      const { data: users, error } = await supabase
         .from("users")
         .select("id")
-        .ilike(
-          "email",
-          normalizedEmail
-        )
+        .ilike("email", normalizedEmail)
         .limit(1);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       return res.json({
         message: "If an account exists for that email, reset instructions will be sent.",
       });
 
     } catch (error) {
-      console.error(
-        "Forgot password error:",
-        error
-      );
+      console.error("Forgot password error:", error);
 
       return res.status(500).json({
-        error:
-          "Server error",
-        code:
-          "SERVER_ERROR",
+        error: "Server error",
+        code: "SERVER_ERROR",
       });
     }
   }
@@ -1098,144 +786,65 @@ router.patch(
   "/change-password",
   requireAuth,
   async (req, res) => {
-    const {
-      currentPassword,
-      newPassword,
-    } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    if (
-      !currentPassword ||
-      !newPassword
-    ) {
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({
-        error:
-          "currentPassword and newPassword are required",
-        code:
-          "VALIDATION_ERROR",
+        error: "currentPassword and newPassword are required",
+        code: "VALIDATION_ERROR",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
-        error:
-          "New password must be at least 6 characters",
-        code:
-          "VALIDATION_ERROR",
+        error: "New password must be at least 6 characters",
+        code: "VALIDATION_ERROR",
       });
     }
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | Get current user
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        data: user,
-        error,
-      } = await supabase
+      const { data: user, error } = await supabase
         .from("users")
         .select("*")
-        .eq(
-          "id",
-          req.auth.id
-        )
+        .eq("id", req.auth.id)
         .single();
 
-      if (
-        error ||
-        !user
-      ) {
+      if (error || !user) {
         return res.status(404).json({
-          error:
-            "User not found",
-          code:
-            "ACCOUNT_NOT_FOUND",
+          error: "User not found",
+          code: "ACCOUNT_NOT_FOUND",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Verify current password
-      |--------------------------------------------------------------------------
-      */
-
-      const passwordMatches =
-        await bcrypt.compare(
-          currentPassword,
-          user.password
-        );
+      const passwordMatches = await bcrypt.compare(currentPassword, user.password);
 
       if (!passwordMatches) {
         return res.status(401).json({
-          error:
-            "Current password is incorrect",
-          code:
-            "INVALID_CREDENTIALS",
+          error: "Current password is incorrect",
+          code: "INVALID_CREDENTIALS",
         });
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Hash new password
-      |--------------------------------------------------------------------------
-      */
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      const hashedPassword =
-        await bcrypt.hash(
-          newPassword,
-          10
-        );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Update password
-      |--------------------------------------------------------------------------
-      */
-
-      const {
-        error: updateError,
-      } = await supabase
+      const { error: updateError } = await supabase
         .from("users")
-        .update({
-          password:
-            hashedPassword,
-        })
-        .eq(
-          "id",
-          req.auth.id
-        );
+        .update({ password: hashedPassword })
+        .eq("id", req.auth.id);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      return res.json({
-        message:
-          "Password updated successfully",
-      });
+      return res.json({ message: "Password updated successfully" });
 
     } catch (error) {
-      console.error(
-        "Change password error:",
-        error
-      );
+      console.error("Change password error:", error);
 
       return res.status(500).json({
-        error:
-          "Server error",
-        code:
-          "SERVER_ERROR",
+        error: "Server error",
+        code: "SERVER_ERROR",
       });
     }
   }
 );
-
-/*
-|--------------------------------------------------------------------------
-| EXPORT
-|--------------------------------------------------------------------------
-*/
 
 export default router;

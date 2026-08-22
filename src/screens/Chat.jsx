@@ -245,7 +245,7 @@ export default function Chat() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:flex-col md:h-full md:w-full">
-        <TopNav variant="app" />
+        <TopNav variant={user?.role === "artisan" ? "artisan" : "app"} />
         <div className="flex-1 flex overflow-hidden">
           <div className="w-[260px] shrink-0 border-r border-[#E5E7EB] py-6 px-3 flex flex-col gap-1 overflow-y-auto">
             <p className="px-3.5 pb-2 text-[#6B7280] text-xs font-bold tracking-[0.2px]">CONVERSATIONS</p>

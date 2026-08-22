@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusSpace, Label, Button, Avatar, TextInput } from "../components/UI";
 import TopNav from "../components/TopNav";
@@ -17,62 +17,80 @@ const TRADE_OPTIONS = [
 ];
 
 const EXPERIENCE_OPTIONS = [
-  "Less than 1 year",
-  "1 year",
-  "2 years",
-  "3 years",
-  "4 years",
-  "5 years",
-  "6 years",
-  "7 years",
-  "8-10 years",
-  "10+ years",
+  { icon: "📈", label: "Less than 1 year" },
+  { icon: "📈", label: "1 year" },
+  { icon: "📈", label: "2 years" },
+  { icon: "📈", label: "3 years" },
+  { icon: "📈", label: "4 years" },
+  { icon: "📈", label: "5 years" },
+  { icon: "📈", label: "6 years" },
+  { icon: "📈", label: "7 years" },
+  { icon: "📈", label: "8-10 years" },
+  { icon: "📈", label: "10+ years" },
 ];
+
+// Custom dropdown: icon + label travel together as one unit, both in the
+// closed field and in the option list — no native <select> quirks.
+function Dropdown({ label, options, selected, onSelect }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-2" ref={containerRef}>
+      <Label>{label}</Label>
+      <div className="relative w-full">
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-[10px] h-[52px] px-[17px] bg-white"
+        >
+          <span className="flex items-center gap-2 text-[#1F2937] text-[16px]">
+            <span>{selected.icon}</span>
+            {selected.label}
+          </span>
+          <span className={`text-[#9CA3AF] transition-transform ${isOpen ? "rotate-180" : ""}`}>▾</span>
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-full max-h-[240px] overflow-y-auto bg-white border border-[#E5E7EB] rounded-[10px] shadow-lg">
+            {options.map((o) => (
+              <button
+                key={o.label}
+                type="button"
+                onClick={() => {
+                  onSelect(o);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 text-left px-[17px] py-3 text-[16px] hover:bg-[#F9FAFB] ${
+                  o.label === selected.label ? "text-[#FF7A00] font-medium" : "text-[#1F2937]"
+                }`}
+              >
+                <span>{o.icon}</span>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ArtisanBuildProfile() {
   const navigate = useNavigate();
 
-  const [trade, setTrade] = useState(TRADE_OPTIONS[0].label);
-  const [tradeIcon, setTradeIcon] = useState(TRADE_OPTIONS[0].icon);
+  const [trade, setTrade] = useState(TRADE_OPTIONS[0]);
   const [experience, setExperience] = useState(EXPERIENCE_OPTIONS[6]);
-
-  const SelectField = ({ label, icon, value, onChange, options, isTrade }) => (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      <div className="relative w-full">
-        <span className="pointer-events-none absolute left-[17px] top-1/2 -translate-y-1/2 text-[16px]">
-          {icon}
-        </span>
-        <select
-          value={value}
-          onChange={(e) => {
-            if (isTrade) {
-              const picked = TRADE_OPTIONS.find((o) => o.label === e.target.value);
-              onChange(picked.label, picked.icon);
-            } else {
-              onChange(e.target.value);
-            }
-          }}
-          className="w-full appearance-none border border-[#E5E7EB] rounded-[10px] h-[52px] pl-[42px] pr-[36px] text-[#1F2937] text-[16px] bg-white outline-none focus:border-[#FF7A00] cursor-pointer"
-        >
-          {isTrade
-            ? TRADE_OPTIONS.map((o) => (
-                <option key={o.label} value={o.label}>
-                  {o.label}
-                </option>
-              ))
-            : options.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-        </select>
-        <span className="pointer-events-none absolute right-[17px] top-1/2 -translate-y-1/2 text-[#9CA3AF]">
-          ▾
-        </span>
-      </div>
-    </div>
-  );
 
   const Bio = () => (
     <div className="flex flex-col gap-2">
@@ -100,19 +118,17 @@ export default function ArtisanBuildProfile() {
             </div>
           </div>
 
-          <SelectField
+          <Dropdown
             label="Wetin be your trade?"
-            icon={tradeIcon}
-            value={trade}
-            onChange={(label, icon) => { setTrade(label); setTradeIcon(icon); }}
-            isTrade
+            options={TRADE_OPTIONS}
+            selected={trade}
+            onSelect={setTrade}
           />
-          <SelectField
+          <Dropdown
             label="Years of Experience"
-            icon="📈"
-            value={experience}
-            onChange={setExperience}
             options={EXPERIENCE_OPTIONS}
+            selected={experience}
+            onSelect={setExperience}
           />
 
           {Bio()}
@@ -140,19 +156,17 @@ export default function ArtisanBuildProfile() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <SelectField
+              <Dropdown
                 label="Wetin be your trade?"
-                icon={tradeIcon}
-                value={trade}
-                onChange={(label, icon) => { setTrade(label); setTradeIcon(icon); }}
-                isTrade
+                options={TRADE_OPTIONS}
+                selected={trade}
+                onSelect={setTrade}
               />
-              <SelectField
+              <Dropdown
                 label="Years of Experience"
-                icon="📈"
-                value={experience}
-                onChange={setExperience}
                 options={EXPERIENCE_OPTIONS}
+                selected={experience}
+                onSelect={setExperience}
               />
             </div>
 

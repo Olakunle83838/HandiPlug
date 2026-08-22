@@ -8,17 +8,46 @@ import { api } from "../lib/api";
 
 export default function Chat() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  
+
   const { token, user } = useAuth();
-  
+
+  const [conversations, setConversations] = useState([]);
+  const [conversationsLoading, setConversationsLoading] = useState(true);
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+
+  // Load the list of bookings this user is part of, to show as
+  // conversations. Each booking = one conversation thread.
+  useEffect(() => {
+    if (!token) return;
+    let isMounted = true;
+
+    api.myBookings(token)
+      .then((res) => {
+        if (isMounted) setConversations(res.bookings || []);
+      })
+      .catch((err) => console.error("Failed to load conversations:", err))
+      .finally(() => {
+        if (isMounted) setConversationsLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [token]);
+
+  // If nothing is selected yet, auto-select the first conversation
+  // (desktop convenience — doesn't affect mobile, which shows a list first).
+  useEffect(() => {
+    if (!bookingId && conversations.length > 0) {
+      setSearchParams({ bookingId: conversations[0].id }, { replace: true });
+    }
+  }, [bookingId, conversations, setSearchParams]);
 
   useEffect(() => {
     if (!bookingId || !token) return;
@@ -40,6 +69,7 @@ export default function Chat() {
       }
     };
 
+    setLoading(true);
     fetchMessages();
     pollInterval = setInterval(fetchMessages, 3000);
 
@@ -59,14 +89,10 @@ export default function Chat() {
     if (!input.trim() || sending || !bookingId) return;
     const textToSend = input.trim();
     setSending(true);
-    
-    // Optimistic UI (optional, but requested simple UI refresh after send)
-    // We will just wait for the API for safety to get the real ID and dedupe
-    
+
     try {
       await api.sendMessage({ bookingId, text: textToSend }, token);
       setInput("");
-      // Immediately fetch latest
       const res = await api.getMessages(bookingId, token);
       setMessages(res.messages || []);
     } catch (err) {
@@ -76,7 +102,49 @@ export default function Chat() {
     }
   };
 
+  // The "other person" in the conversation depends on whether I'm the
+  // customer or the artisan on this booking.
+  const otherPartyName = (booking) => {
+    if (!booking) return "Conversation";
+    return user?.role === "artisan" ? booking.customerName : booking.artisanName;
+  };
+
+  const activeBooking = conversations.find((b) => b.id === bookingId);
+
+  const ConversationList = ({ onSelect }) => {
+    if (conversationsLoading) {
+      return <div className="px-3.5 text-sm text-[#9CA3AF]">Loading conversations...</div>;
+    }
+    if (conversations.length === 0) {
+      return <div className="px-3.5 text-sm text-[#9CA3AF]">No bookings yet — conversations appear here once you have one.</div>;
+    }
+    return conversations.map((b) => (
+      <button
+        key={b.id}
+        onClick={() => onSelect(b.id)}
+        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-left ${
+          b.id === bookingId ? "bg-[#FFF1E6]" : "hover:bg-[#F5F6F8]"
+        }`}
+      >
+        <Avatar size={36} />
+        <div className="min-w-0">
+          <p className="text-[#1F2937] text-sm font-semibold truncate">{otherPartyName(b)}</p>
+          <p className="text-[#6B7280] text-xs truncate">{b.artisanTrade || b.status}</p>
+        </div>
+      </button>
+    ));
+  };
+
   const Bubbles = () => {
+    if (!bookingId) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <p className="text-[#1F2937] font-semibold mb-1">Select a conversation</p>
+          <p className="text-[#6B7280] text-sm">Choose a booking from the list to view its chat.</p>
+        </div>
+      );
+    }
+
     if (loading) {
       return (
         <div className="flex-1 flex items-center justify-center">
@@ -133,8 +201,8 @@ export default function Chat() {
         disabled={loading || sending || !bookingId}
         className="flex-1 border border-[#E5E7EB] rounded-[10px] h-[52px] px-4 outline-none focus:border-[#FF7A00] text-[16px] disabled:opacity-50"
       />
-      <button 
-        onClick={send} 
+      <button
+        onClick={send}
         disabled={loading || sending || !input.trim() || !bookingId}
         className="bg-[#FF7A00] rounded-[10px] h-[52px] px-6 flex items-center justify-center text-white text-sm font-semibold shrink-0 disabled:opacity-50"
       >
@@ -147,33 +215,48 @@ export default function Chat() {
     <div className="bg-white flex flex-col h-full w-full">
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
-        <StatusSpace />
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#E5E7EB]">
-          <button onClick={() => navigate(-1)} className="text-2xl text-[#1F2937]">‹</button>
-          <Avatar size={40} />
-          <div>
-            <p className="text-[#1F2937] font-semibold">Conversation</p>
-          </div>
-        </div>
-        {Bubbles()}
-        {Composer()}
+        {!bookingId ? (
+          // No conversation open yet: show the list full-screen.
+          <>
+            <StatusSpace />
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-[#E5E7EB]">
+              <button onClick={() => navigate(-1)} className="text-2xl text-[#1F2937]">‹</button>
+              <p className="text-[#1F2937] font-semibold text-lg">Messages</p>
+            </div>
+            <div className="flex-1 overflow-y-auto py-3 px-1 flex flex-col gap-1">
+              <ConversationList onSelect={(id) => setSearchParams({ bookingId: id })} />
+            </div>
+          </>
+        ) : (
+          <>
+            <StatusSpace />
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-[#E5E7EB]">
+              <button onClick={() => setSearchParams({})} className="text-2xl text-[#1F2937]">‹</button>
+              <Avatar size={40} />
+              <div>
+                <p className="text-[#1F2937] font-semibold">{otherPartyName(activeBooking)}</p>
+              </div>
+            </div>
+            {Bubbles()}
+            {Composer()}
+          </>
+        )}
       </div>
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:flex-col md:h-full md:w-full">
         <TopNav variant="app" />
         <div className="flex-1 flex overflow-hidden">
-          <div className="w-[260px] shrink-0 border-r border-[#E5E7EB] py-6 px-3 flex flex-col gap-1">
+          <div className="w-[260px] shrink-0 border-r border-[#E5E7EB] py-6 px-3 flex flex-col gap-1 overflow-y-auto">
             <p className="px-3.5 pb-2 text-[#6B7280] text-xs font-bold tracking-[0.2px]">CONVERSATIONS</p>
-            {/* Desktop side-list remains a placeholder for MVP since there is no getConversations API yet */}
-            <div className="px-3.5 text-sm text-[#9CA3AF]">Select a booking to view chat</div>
+            <ConversationList onSelect={(id) => setSearchParams({ bookingId: id })} />
           </div>
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex items-center gap-3 px-7 py-4 border-b border-[#E5E7EB]">
               <Avatar size={38} />
               <div>
-                <p className="text-[#1F2937] font-semibold">Conversation</p>
+                <p className="text-[#1F2937] font-semibold">{otherPartyName(activeBooking)}</p>
               </div>
             </div>
             {Bubbles()}

@@ -4,27 +4,29 @@ import { StatusSpace, Button } from "../components/UI";
 import TopNav from "../components/TopNav";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
 export default function ArtisanPortfolioUpload() {
   const navigate = useNavigate();
   const { token } = useAuth();
-  
+
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [previews, setPreviews] = useState([]);
+  const [error, setError] = useState("");
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
     const selected = Array.from(e.target.files);
     const valid = selected.filter(f => ["image/jpeg", "image/png", "image/webp"].includes(f.type));
-    
+
     if (valid.length !== selected.length) {
       alert("Only JPEG, PNG, and WebP are allowed.");
     }
-    
+
     const newFiles = [...files, ...valid].slice(0, 5); // max 5
     setFiles(newFiles);
-    
+
     // Generate previews
     const newPreviews = newFiles.map(f => URL.createObjectURL(f));
     setPreviews(newPreviews);
@@ -34,10 +36,30 @@ export default function ArtisanPortfolioUpload() {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
-    
+
     const newPreviews = [...previews];
     newPreviews.splice(index, 1);
     setPreviews(newPreviews);
+  };
+
+  // Uploads one file directly to Supabase Storage using a signed URL
+  // issued by our backend. The file itself never passes through our
+  // Vercel serverless function, so its 4.5MB body limit never applies.
+  const uploadOneFile = async (file) => {
+    const { path, imageId, signedUrl, token: uploadToken } = await api.getPortfolioUploadUrl(
+      { fileName: file.name, fileType: file.type },
+      token
+    );
+
+    const { error: uploadError } = await supabase.storage
+      .from("portfolios")
+      .uploadToSignedUrl(path, uploadToken, file, { contentType: file.type });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+    }
+
+    return { path, imageId };
   };
 
   const handleUpload = async () => {
@@ -45,15 +67,24 @@ export default function ArtisanPortfolioUpload() {
       // Just continue if they don't want to upload anything
       return navigate("/artisan/kyc");
     }
-    
+
+    setError("");
     setUploading(true);
     try {
-      const formData = new FormData();
-      files.forEach(f => formData.append("images", f));
-      await api.uploadPortfolio(formData, token);
+      // Upload every file directly to Supabase Storage first
+      const uploadedImages = [];
+      for (const file of files) {
+        const result = await uploadOneFile(file);
+        uploadedImages.push(result);
+      }
+
+      // Then tell our backend about the resulting paths (small JSON,
+      // no file data) so it can save portfolio_images rows.
+      await api.confirmPortfolioUpload({ images: uploadedImages }, token);
+
       navigate("/artisan/kyc");
     } catch (err) {
-      alert(err.message || "Failed to upload portfolio");
+      setError(err.message || "Failed to upload portfolio");
     } finally {
       setUploading(false);
     }
@@ -116,7 +147,8 @@ export default function ArtisanPortfolioUpload() {
           ) : (
             UploadZone({})
           )}
-          
+
+          {error && <p className="text-[#EF4444] text-sm">{error}</p>}
         </div>
         <div className="p-6 pt-2">
           <Button onClick={handleUpload} disabled={uploading}>
@@ -164,7 +196,9 @@ export default function ArtisanPortfolioUpload() {
                 </div>
               </div>
             )}
-            
+
+            {error && <p className="text-[#EF4444] text-sm">{error}</p>}
+
             <Button className="max-w-[220px]" onClick={handleUpload} disabled={uploading}>
               {uploading ? "Uploading..." : files.length > 0 ? "Upload & Continue" : "Skip for now"}
             </Button>

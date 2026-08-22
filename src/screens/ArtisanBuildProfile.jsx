@@ -4,6 +4,7 @@ import { StatusSpace, Label, Button, Avatar, TextInput } from "../components/UI"
 import TopNav from "../components/TopNav";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
 const TRADE_OPTIONS = [
   { icon: "🔨", label: "Carpenter" },
@@ -130,11 +131,23 @@ export default function ArtisanBuildProfile() {
     setSaving(true);
 
     try {
-      // Upload the photo first (if a new one was chosen)
+      // Upload the photo first (if a new one was chosen) — directly to
+      // Supabase Storage via a signed URL, bypassing our server entirely.
       if (photoFile) {
-        const formData = new FormData();
-        formData.append("avatar", photoFile);
-        await api.uploadAvatar(formData, token);
+        const { path, signedUrl, token: uploadToken } = await api.getAvatarUploadUrl(
+          { fileName: photoFile.name, fileType: photoFile.type },
+          token
+        );
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .uploadToSignedUrl(path, uploadToken, photoFile, { contentType: photoFile.type });
+
+        if (uploadError) {
+          throw new Error(`Failed to upload photo: ${uploadError.message}`);
+        }
+
+        await api.confirmAvatarUpload({ path }, token);
       }
 
       // Save trade, experience, bio, and hourly rate

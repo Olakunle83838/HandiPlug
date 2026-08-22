@@ -1,23 +1,13 @@
 import { Router } from "express";
 import { supabase, generateId } from "../supabase.js";
 import { requireAuth } from "../middleware/auth.js";
-import multer from "multer";
 
 const router = Router();
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only JPEG, PNG, and WebP are allowed."));
-    }
-  }
-});
+
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const EDITABLE_FIELDS = [
-  "fullName", "phone", "address", "bio", "area", "hourlyRate", "yearsExperience",
+  "fullName", "phone", "address", "bio", "area", "trade", "hourlyRate", "yearsExperience",
   "bankName", "accountNumber", "accountName",
 ];
 
@@ -46,33 +36,51 @@ router.patch("/me", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/avatar", requireAuth, upload.single("avatar"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No image file provided", code: "VALIDATION_ERROR" });
+// Issues a short-lived signed upload URL for the artisan's avatar. The
+// browser uploads the image directly to Supabase Storage using this URL
+// — the file never passes through our server, so Vercel's 4.5MB body
+// limit never applies.
+router.post("/avatar/upload-url", requireAuth, async (req, res) => {
+  const { fileName, fileType } = req.body;
+
+  if (!fileName || !fileType) {
+    return res.status(400).json({ error: "fileName and fileType are required" });
+  }
+  if (!ALLOWED_AVATAR_TYPES.includes(fileType)) {
+    return res.status(400).json({ error: "Only JPEG, PNG, and WebP are allowed" });
   }
 
   try {
-    const fileExt = req.file.mimetype.split("/")[1];
-    const fileName = `${req.auth.id}/${generateId()}.${fileExt}`;
-    
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const fileExt = fileType.split("/")[1];
+    const path = `${req.auth.id}/${generateId()}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
       .from("avatars")
-      .upload(fileName, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false
-      });
+      .createSignedUploadUrl(path);
 
-    if (uploadError) {
-      console.error("Avatar upload error:", uploadError);
-      return res.status(500).json({ error: "Failed to upload avatar", code: "UPLOAD_FAILED" });
-    }
+    if (error) throw error;
 
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+    res.json({ path, signedUrl: data.signedUrl, token: data.token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || "Failed to create upload URL" });
+  }
+});
+
+// After the browser uploads the avatar directly to Supabase Storage using
+// the signed URL above, it calls this with the resulting path so we can
+// save the public avatar URL against the user's record.
+router.post("/avatar/confirm", requireAuth, async (req, res) => {
+  const { path } = req.body;
+
+  if (!path) {
+    return res.status(400).json({ error: "path is required", code: "VALIDATION_ERROR" });
+  }
+
+  try {
+    const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const avatarUrl = publicUrlData.publicUrl;
 
-    // Update user record
     const { data: user, error: updateError } = await supabase
       .from("users")
       .update({ avatarUrl })
@@ -86,7 +94,7 @@ router.post("/avatar", requireAuth, upload.single("avatar"), async (req, res) =>
     res.json({ user: rest });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Server error during avatar upload", code: "SERVER_ERROR" });
+    res.status(500).json({ error: "Server error while confirming avatar upload", code: "SERVER_ERROR" });
   }
 });
 

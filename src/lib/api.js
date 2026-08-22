@@ -179,16 +179,28 @@ export const api = {
       }
     ),
 
-  uploadAvatar: (
-    formData,
+  getAvatarUploadUrl: (
+    payload,
     token
   ) =>
     request(
-      "/users/avatar",
+      "/users/avatar/upload-url",
       {
         method: "POST",
-        body: formData,
-        formData: true,
+        body: payload,
+        token,
+      }
+    ),
+
+  confirmAvatarUpload: (
+    payload,
+    token
+  ) =>
+    request(
+      "/users/avatar/confirm",
+      {
+        method: "POST",
+        body: payload,
         token,
       }
     ),
@@ -229,16 +241,28 @@ export const api = {
       `/artisans/${id}`
     ),
 
-  uploadPortfolio: (
-    formData,
+  getPortfolioUploadUrl: (
+    payload,
     token
   ) =>
     request(
-      "/artisans/portfolio",
+      "/artisans/portfolio/upload-url",
       {
         method: "POST",
-        body: formData,
-        formData: true,
+        body: payload,
+        token,
+      }
+    ),
+
+  confirmPortfolioUpload: (
+    payload,
+    token
+  ) =>
+    request(
+      "/artisans/portfolio/confirm",
+      {
+        method: "POST",
+        body: payload,
         token,
       }
     ),

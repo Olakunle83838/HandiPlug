@@ -18,6 +18,8 @@ const FALLBACK = {
   hourlyRate: 6500,
   calloutFee: 2000,
   verified: true,
+  avatarUrl: null,
+  portfolio: [],
 };
 
 function Badges({ artisan }) {
@@ -38,6 +40,59 @@ function Badges({ artisan }) {
           ⚡ Fast responder
         </span>
       )}
+    </div>
+  );
+}
+
+// Shows the artisan's uploaded avatar if they have one, otherwise falls
+// back to the emoji placeholder that was there before.
+function ArtisanAvatar({ artisan, size }) {
+  const px = `${size}px`;
+  if (artisan.avatarUrl) {
+    return (
+      <img
+        src={artisan.avatarUrl}
+        alt={artisan.fullName}
+        style={{ width: px, height: px }}
+        className="rounded-2xl object-cover shrink-0"
+      />
+    );
+  }
+  return (
+    <div
+      style={{ width: px, height: px }}
+      className="bg-[#EEF2FF] rounded-2xl flex items-center justify-center text-3xl shrink-0"
+    >
+      ⚡
+    </div>
+  );
+}
+
+// Renders real portfolio photos when available, otherwise falls back to
+// empty placeholder tiles so the layout doesn't collapse.
+function PortfolioGrid({ portfolio, tileClass }) {
+  const items = portfolio && portfolio.length > 0 ? portfolio : [];
+
+  if (items.length === 0) {
+    return (
+      <div className="flex gap-2.5">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className={`${tileClass} bg-[#F5F6F8]`} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2.5">
+      {items.map((item) => (
+        <img
+          key={item.id}
+          src={item.url}
+          alt="Portfolio work"
+          className={`${tileClass} object-cover`}
+        />
+      ))}
     </div>
   );
 }
@@ -66,7 +121,7 @@ export default function ArtisanProfile() {
         </div>
         <div className="flex-1 overflow-y-auto px-6 pt-4 gap-5 flex flex-col pb-4">
           <div className="flex items-center gap-3.5">
-            <div className="bg-[#EEF2FF] rounded-2xl size-16 flex items-center justify-center text-2xl shrink-0">⚡</div>
+            <ArtisanAvatar artisan={artisan} size={64} />
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-[#1F2937] text-lg font-bold">{artisan.fullName}</p>
@@ -89,9 +144,7 @@ export default function ArtisanProfile() {
 
           <div className="flex flex-col gap-2">
             <Label>Portfolio</Label>
-            <div className="flex gap-2.5">
-              {[1, 2, 3].map((i) => <div key={i} className="size-20 rounded-2xl bg-[#F5F6F8]" />)}
-            </div>
+            <PortfolioGrid portfolio={artisan.portfolio} tileClass="size-20 rounded-2xl" />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -121,7 +174,7 @@ export default function ArtisanProfile() {
               <button onClick={() => navigate(-1)} className="text-[#6B7280] text-sm self-start">← Back to search</button>
 
               <div className="flex items-center gap-4">
-                <div className="bg-[#EEF2FF] rounded-2xl size-20 flex items-center justify-center text-3xl shrink-0">⚡</div>
+                <ArtisanAvatar artisan={artisan} size={80} />
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-[#1F2937] text-2xl font-bold">{artisan.fullName}</p>
@@ -144,8 +197,8 @@ export default function ArtisanProfile() {
 
               <div>
                 <Label>Portfolio</Label>
-                <div className="flex gap-3 mt-2">
-                  {[1, 2, 3, 4].map((i) => <div key={i} className="w-[140px] h-[100px] rounded-2xl bg-[#F5F6F8]" />)}
+                <div className="mt-2">
+                  <PortfolioGrid portfolio={artisan.portfolio} tileClass="w-[140px] h-[100px] rounded-2xl" />
                 </div>
               </div>
 

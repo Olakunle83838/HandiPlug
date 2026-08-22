@@ -4,6 +4,14 @@ import crypto from "crypto";
 import { supabase, generateId } from "../supabase.js";
 import { signToken, requireAuth } from "../middleware/auth.js";
 import rateLimit from "express-rate-limit";
+import {
+  normalizeEmail,
+  normalizePhone,
+  registrationConflict,
+  selectBrevoSender,
+  secureHashEqual,
+  validateRegistration,
+} from "../lib/authSecurity.js";
 
 const router = Router();
 
@@ -89,13 +97,31 @@ function hashOtp(otp) {
 */
 
 async function sendOtpEmail({ email, fullName, otp }) {
-  if (!process.env.BREVO_API_KEY) {
-    throw new Error("BREVO_API_KEY is not configured");
+  const apiKey = process.env.BREVO_API_KEY;
+  let sender = selectBrevoSender(
+    process.env.BREVO_SENDER_EMAIL,
+    process.env.BREVO_SENDER_NAME,
+  );
+
+  if (!apiKey) {
+    const isLocalDevelopment = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
+    if (isLocalDevelopment) {
+      console.info(`[HandiPlug auth] Development OTP for ${email}: ${otp}`);
+      return { delivery: "development-console" };
+    }
+    throw new Error("Email delivery is not configured");
   }
 
-  if (!process.env.BREVO_SENDER_EMAIL) {
-    throw new Error("BREVO_SENDER_EMAIL is not configured");
+  if (!sender) {
+    const senderResponse = await fetch("https://api.brevo.com/v3/senders", {
+      headers: { accept: "application/json", "api-key": apiKey },
+    });
+    if (!senderResponse.ok) throw new Error("Unable to load Brevo senders");
+    const senderData = await senderResponse.json();
+    sender = selectBrevoSender(null, null, senderData.senders);
   }
+
+  if (!sender) throw new Error("No active Brevo sender is available");
 
   const response = await fetch(
     "https://api.brevo.com/v3/smtp/email",
@@ -104,14 +130,14 @@ async function sendOtpEmail({ email, fullName, otp }) {
 
       headers: {
         accept: "application/json",
-        "api-key": process.env.BREVO_API_KEY,
+        "api-key": apiKey,
         "content-type": "application/json",
       },
 
       body: JSON.stringify({
         sender: {
-          name: process.env.BREVO_SENDER_NAME || "HandiPlug",
-          email: process.env.BREVO_SENDER_EMAIL,
+          name: sender.name,
+          email: sender.email,
         },
 
         to: [
@@ -236,15 +262,8 @@ router.post(
   "/register",
   authLimiter,
   async (req, res) => {
-    const {
-      fullName,
-      email,
-      phone,
-      password,
-      address,
-      role,
-      trade,
-    } = req.body;
+    const { trade } = req.body;
+    const validation = validateRegistration(req.body);
 
     /*
     |--------------------------------------------------------------------------
@@ -252,40 +271,21 @@ router.post(
     |--------------------------------------------------------------------------
     */
 
-    if (
-      !fullName ||
-      !email ||
-      !phone ||
-      !password ||
-      !role
-    ) {
+    if (validation.error) {
       return res.status(400).json({
-        error:
-          "Full name, email, phone, password and role are required",
-        code: "VALIDATION_ERROR",
+        error: validation.error,
+        code: validation.code,
       });
     }
 
-    if (
-      !["customer", "artisan"].includes(role)
-    ) {
-      return res.status(400).json({
-        error:
-          "role must be 'customer' or 'artisan'",
-        code: "VALIDATION_ERROR",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        error:
-          "Password must be at least 6 characters",
-        code: "VALIDATION_ERROR",
-      });
-    }
-
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    const {
+      fullName,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      password,
+      address,
+      role,
+    } = validation.value;
 
     try {
       /*
@@ -294,51 +294,30 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      const {
-        data: existingUsers,
-        error: checkError,
-      } = await supabase
+      const { data: emailUsers, error: emailCheckError } = await supabase
         .from("users")
-        .select("id, phone, email")
-        .or(
-          `phone.eq.${phone},email.eq.${normalizedEmail}`
-        );
+        .select("id, verified, phone, password, verification_code_hash, verification_code_expires_at")
+        .eq("email", normalizedEmail)
+        .limit(1);
 
-      if (checkError) {
-        throw checkError;
-      }
+      if (emailCheckError) throw emailCheckError;
 
-      if (
-        existingUsers &&
-        existingUsers.length > 0
-      ) {
-        if (
-          existingUsers.some(
-            (user) =>
-              user.phone === phone
-          )
-        ) {
-          return res.status(409).json({
-            error:
-              "An account with this phone number already exists",
-            code: "PHONE_EXISTS",
-          });
-        }
+      const { data: phoneUsers, error: phoneCheckError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("phone", normalizedPhone)
+        .limit(1);
 
-        if (
-          existingUsers.some(
-            (user) =>
-              user.email &&
-              user.email.toLowerCase() ===
-                normalizedEmail
-          )
-        ) {
-          return res.status(409).json({
-            error:
-              "An account with this email already exists",
-            code: "EMAIL_EXISTS",
-          });
-        }
+      if (phoneCheckError) throw phoneCheckError;
+
+      const existingEmailUser = emailUsers?.[0] || null;
+      const existingPhoneUser = phoneUsers?.[0] || null;
+      const conflict = registrationConflict(existingEmailUser, existingPhoneUser, normalizedPhone);
+      if (conflict?.code) {
+        return res.status(409).json({
+          error: conflict.error,
+          code: conflict.code,
+        });
       }
 
       /*
@@ -362,7 +341,7 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      const userId = generateId();
+      const userId = conflict?.userId || generateId();
 
       const hashedPassword =
         await bcrypt.hash(password, 10);
@@ -378,7 +357,7 @@ router.post(
         email:
           normalizedEmail,
 
-        phone,
+        phone: normalizedPhone,
 
         address:
           address || null,
@@ -427,15 +406,11 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      const {
-        error: insertError,
-      } = await supabase
-        .from("users")
-        .insert([newUser]);
-
-      if (insertError) {
-        throw insertError;
-      }
+      const writeQuery = conflict?.action === "resume"
+        ? supabase.from("users").update(newUser).eq("id", userId)
+        : supabase.from("users").insert([newUser]);
+      const { error: writeError } = await writeQuery;
+      if (writeError) throw writeError;
 
       /*
       |--------------------------------------------------------------------------
@@ -443,11 +418,21 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      await sendOtpEmail({
-        email: normalizedEmail,
-        fullName,
-        otp,
-      });
+      try {
+        await sendOtpEmail({ email: normalizedEmail, fullName, otp });
+      } catch (emailError) {
+        const rollbackQuery = conflict?.action === "resume"
+          ? supabase.from("users").update({
+              password: existingEmailUser.password,
+              verification_code_hash: existingEmailUser.verification_code_hash,
+              verification_code_expires_at: existingEmailUser.verification_code_expires_at,
+            }).eq("id", userId)
+          : supabase.from("users").delete().eq("id", userId);
+        const { error: rollbackError } = await rollbackQuery;
+
+        if (rollbackError) console.error("Registration rollback failed:", rollbackError);
+        throw emailError;
+      }
 
       /*
       |--------------------------------------------------------------------------
@@ -455,7 +440,7 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      return res.status(201).json({
+      return res.status(conflict?.action === "resume" ? 200 : 201).json({
         message:
           "Registration successful. Verification code sent to your email.",
 
@@ -473,9 +458,7 @@ router.post(
       );
 
       return res.status(500).json({
-        error:
-          error.message ||
-          "Server error during registration",
+        error: "Unable to create account. Please try again.",
 
         code:
           "REGISTRATION_ERROR",
@@ -492,14 +475,14 @@ router.post(
 
 router.post(
   "/verify-otp",
-  authLimiter,
+  otpLimiter,
   async (req, res) => {
     const {
       email,
       otp,
     } = req.body;
 
-    if (!email || !otp) {
+    if (!email || typeof otp !== "string") {
       return res.status(400).json({
         error:
           "Email and OTP are required",
@@ -517,8 +500,10 @@ router.post(
       });
     }
 
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Enter a valid email address", code: "INVALID_EMAIL" });
+    }
 
     try {
       /*
@@ -616,10 +601,7 @@ router.post(
       const submittedHash =
         hashOtp(otp);
 
-      if (
-        submittedHash !==
-        user.verification_code_hash
-      ) {
+      if (!secureHashEqual(submittedHash, user.verification_code_hash)) {
         return res.status(400).json({
           error:
             "Invalid verification code",
@@ -719,8 +701,10 @@ router.post(
       });
     }
 
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: "Enter a valid email address", code: "INVALID_EMAIL" });
+    }
 
     try {
       /*
@@ -735,7 +719,7 @@ router.post(
       } = await supabase
         .from("users")
         .select(
-          "id, email, fullName, verified"
+          "id, email, fullName, verified, verification_code_hash, verification_code_expires_at"
         )
         .ilike(
           "email",
@@ -817,15 +801,20 @@ router.post(
       |--------------------------------------------------------------------------
       */
 
-      await sendOtpEmail({
-        email:
-          normalizedEmail,
+      try {
+        await sendOtpEmail({ email: normalizedEmail, fullName: user.fullName, otp });
+      } catch (emailError) {
+        const { error: rollbackError } = await supabase
+          .from("users")
+          .update({
+            verification_code_hash: user.verification_code_hash,
+            verification_code_expires_at: user.verification_code_expires_at,
+          })
+          .eq("id", user.id);
 
-        fullName:
-          user.fullName,
-
-        otp,
-      });
+        if (rollbackError) console.error("OTP rollback failed:", rollbackError);
+        throw emailError;
+      }
 
       return res.json({
         message:
@@ -866,11 +855,10 @@ router.post(
       password,
     } = req.body;
 
-    const identifier =
-      email || phone;
+    const rawIdentifier = email || phone;
 
     if (
-      !identifier ||
+      !rawIdentifier ||
       !password
     ) {
       return res.status(400).json({
@@ -881,6 +869,17 @@ router.post(
       });
     }
 
+    const identifier = typeof rawIdentifier === "string" ? rawIdentifier.trim() : "";
+    const isEmail = identifier.includes("@");
+    const normalizedIdentifier = isEmail ? normalizeEmail(identifier) : normalizePhone(identifier);
+
+    if (!normalizedIdentifier || typeof password !== "string") {
+      return res.status(400).json({
+        error: "Enter a valid email address or phone number",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
     try {
       const {
         data: users,
@@ -888,9 +887,7 @@ router.post(
       } = await supabase
         .from("users")
         .select("*")
-        .or(
-          `email.eq.${identifier},phone.eq.${identifier}`
-        )
+        .eq(isEmail ? "email" : "phone", normalizedIdentifier)
         .limit(1);
 
       if (error) {
@@ -1046,12 +1043,11 @@ router.post(
     const { email } =
       req.body;
 
-    if (!email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
       return res.status(400).json({
-        error:
-          "Email is required",
-        code:
-          "VALIDATION_ERROR",
+        error: "Enter a valid email address",
+        code: "INVALID_EMAIL",
       });
     }
 
@@ -1064,7 +1060,7 @@ router.post(
         .select("id")
         .ilike(
           "email",
-          email.trim().toLowerCase()
+          normalizedEmail
         )
         .limit(1);
 
@@ -1073,11 +1069,7 @@ router.post(
       }
 
       return res.json({
-        message:
-          users &&
-          users.length > 0
-            ? "If this were production, a reset link would be emailed to you now."
-            : "If an account exists for that email, reset instructions would be sent.",
+        message: "If an account exists for that email, reset instructions will be sent.",
       });
 
     } catch (error) {

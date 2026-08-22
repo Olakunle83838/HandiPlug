@@ -100,7 +100,7 @@ const submit = async () => {
       />
 
       {error && <p className="text-[#EF4444] text-sm">{error}</p>}
-    </> 
+    </>
   );
 
   return (

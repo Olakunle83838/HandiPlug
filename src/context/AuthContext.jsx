@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { createOtpPayload } from "../lib/otpPayload";
 
 const STORAGE_KEY = "handiplug_auth";
 
@@ -13,7 +14,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function loadAuth() {
       let cachedToken = null;
-      let cachedUser = null;
 
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -21,11 +21,16 @@ export function AuthProvider({ children }) {
         if (raw) {
           const parsed = JSON.parse(raw);
 
+<<<<<<< HEAD
           cachedToken = parsed.token || null;
           cachedUser = parsed.user || null;
+=======
+          cachedToken =
+            parsed.token || null;
+>>>>>>> 7a20faa7f677d151a136ac9183b6d9b20de65645
 
           setToken(cachedToken);
-          setUser(cachedUser);
+          setUser(parsed.user || null);
         }
       } catch (err) {
         console.error("Failed to load saved authentication:", err);
@@ -105,6 +110,7 @@ export function AuthProvider({ children }) {
   };
 
   /*
+<<<<<<< HEAD
    * VERIFY OTP
    */
   const verifyOtp = async (email, otp) => {
@@ -117,7 +123,18 @@ export function AuthProvider({ children }) {
     const nextUser = response.user;
 
     persist(nextToken, nextUser);
+=======
+  |--------------------------------------------------------------------------
+  | VERIFY OTP
+  |--------------------------------------------------------------------------
+  */
 
+  const verifyOtp = async (credentials) => {
+    const payload = createOtpPayload(credentials);
+    const { token: nextToken, user: nextUser } = await api.verifyOtp(payload);
+>>>>>>> 7a20faa7f677d151a136ac9183b6d9b20de65645
+
+    persist(nextToken, nextUser);
     return nextUser;
   };
 
@@ -162,7 +179,12 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+<<<<<<< HEAD
+=======
 
+>>>>>>> 7a20faa7f677d151a136ac9183b6d9b20de65645
+
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
 
@@ -172,5 +194,10 @@ export function useAuth() {
     );
   }
 
+<<<<<<< HEAD
   return context;
 }
+=======
+  return ctx;
+}
+>>>>>>> 7a20faa7f677d151a136ac9183b6d9b20de65645

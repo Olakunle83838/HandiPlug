@@ -2,7 +2,7 @@
 // Uses VITE_API_URL when provided, otherwise falls back to /api.
 
 const BASE_URL =
-  import.meta.env?.VITE_API_URL || "/api";
+  import.meta.env?.PROD ? "/api" : (import.meta.env?.VITE_API_URL || "/api");
 
 async function request(
   path,

@@ -30,6 +30,10 @@ export default function BookingRequest() {
       navigate("/login");
       return;
     }
+    if (!artisanId) {
+      setError("No artisan selected. Please go back and choose an artisan to book.");
+      return;
+    }
     if (user?.role !== "customer") {
       setError("Only customer accounts can book artisans. Log in as a customer to continue.");
       return;
@@ -40,8 +44,16 @@ export default function BookingRequest() {
     }
     setLoading(true);
     try {
-      await api.createBooking({ artisanId, detail, date, time, location }, token);
-      navigate("/booking-confirmation");
+      const res = await api.createBooking({ artisanId, detail, date, time, location }, token);
+      // Pass the REAL booking + artisan info forward so the confirmation
+      // page can show what was actually created, not placeholder text.
+      navigate("/booking-confirmation", {
+        state: {
+          booking: res.booking,
+          artisanName: artisan.fullName,
+          artisanTrade: artisan.trade,
+        },
+      });
     } catch (err) {
       setError(err.message);
     } finally {

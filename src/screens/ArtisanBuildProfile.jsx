@@ -91,6 +91,60 @@ export default function ArtisanBuildProfile() {
 
   const [trade, setTrade] = useState(TRADE_OPTIONS[0]);
   const [experience, setExperience] = useState(EXPERIENCE_OPTIONS[6]);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file.");
+      return;
+    }
+
+    // Basic size guard (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image is too large. Please choose a file under 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setPhotoPreview(reader.result);
+    reader.readAsDataURL(file);
+
+    // TODO: also upload `file` to your backend/storage here and
+    // save the returned URL against the artisan's profile.
+  };
+
+  const ProfilePhoto = ({ size = 110 }) => (
+    <div className="relative">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handlePhotoChange}
+        className="hidden"
+      />
+      {photoPreview ? (
+        <img
+          src={photoPreview}
+          alt="Profile"
+          style={{ width: size, height: size }}
+          className="rounded-full object-cover"
+        />
+      ) : (
+        <Avatar size={size} />
+      )}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="absolute bottom-0 right-0 size-8 rounded-full bg-[#FF7A00] text-white flex items-center justify-center text-lg border-2 border-white"
+      >
+        +
+      </button>
+    </div>
+  );
 
   const Bio = () => (
     <div className="flex flex-col gap-2">
@@ -112,10 +166,7 @@ export default function ArtisanBuildProfile() {
         <div className="flex-1 overflow-y-auto px-6 pt-2 flex flex-col gap-5 pb-4">
           <h1 className="text-[#1F2937] text-2xl font-bold">Build your profile</h1>
           <div className="flex flex-col items-center gap-2 py-2">
-            <div className="relative">
-              <Avatar size={110} />
-              <button className="absolute bottom-0 right-0 size-8 rounded-full bg-[#FF7A00] text-white flex items-center justify-center text-lg border-2 border-white">+</button>
-            </div>
+            <ProfilePhoto />
           </div>
 
           <Dropdown
@@ -149,10 +200,7 @@ export default function ArtisanBuildProfile() {
               <button onClick={() => navigate("/artisan/portfolio")} className="text-[#6B7280] text-sm font-medium">Skip</button>
             </div>
             <div className="flex justify-center">
-              <div className="relative">
-                <Avatar size={110} />
-                <button className="absolute bottom-0 right-0 size-8 rounded-full bg-[#FF7A00] text-white flex items-center justify-center text-lg border-2 border-white">+</button>
-              </div>
+              <ProfilePhoto />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

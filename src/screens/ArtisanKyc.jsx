@@ -5,6 +5,10 @@ import { StatusSpace, Label, Button, TextInput } from "../components/UI";
 import { PendingBadge } from "../components/DesktopExtras";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabaseClient";
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB, matches the kyc-documents bucket limit
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 
 export default function ArtisanKyc() {
   const navigate = useNavigate();
@@ -21,13 +25,49 @@ export default function ArtisanKyc() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const validateFile = (f) => {
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      setError("Only PNG, JPG or PDF files are allowed.");
+      return false;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setError("File is too large. Max size is 5MB.");
+      return false;
+    }
+    return true;
+  };
+
   const handlePick = (e) => {
     const f = e.target.files?.[0];
-    if (f) setFile(f);
+    if (!f) return;
+    setError("");
+    if (validateFile(f)) setFile(f);
   };
   const handleSelfiePick = (e) => {
     const f = e.target.files?.[0];
-    if (f) setSelfie(f);
+    if (!f) return;
+    setError("");
+    if (validateFile(f)) setSelfie(f);
+  };
+
+  // Gets a signed upload URL from our backend (which enforces our own
+  // custom auth), then uploads the file directly to Supabase Storage
+  // using that URL. The file never passes through our server.
+  const uploadToSupabase = async (f, kind) => {
+    const { path, signedUrl, token: uploadToken } = await api.getKycUploadUrl(
+      { fileName: f.name, fileType: f.type, kind },
+      token
+    );
+
+    const { error: uploadError } = await supabase.storage
+      .from("kyc-documents")
+      .uploadToSignedUrl(path, uploadToken, f, { contentType: f.type });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload ${kind}: ${uploadError.message}`);
+    }
+
+    return path;
   };
 
   const doUpload = async () => {
@@ -44,18 +84,31 @@ export default function ArtisanKyc() {
       setError("HandiPlug requires 2 guarantors — please fill in both phone numbers.");
       return;
     }
+
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("document", file);
-      if (selfie) formData.append("selfie", selfie);
-      formData.append("documentType", docType);
-      formData.append("ninNumber", ninNumber);
-      formData.append("guarantor1Name", "Not collected");
-      formData.append("guarantor1Phone", guarantor1Phone);
-      formData.append("guarantor2Name", "Not collected");
-      formData.append("guarantor2Phone", guarantor2Phone);
-      const res = await api.submitKyc(formData, token);
+      // 1. Upload files directly to Supabase Storage (browser -> Supabase,
+      //    no detour through our server, so no 4.5MB Vercel body limit).
+      const documentPath = await uploadToSupabase(file, "document");
+      const selfiePath = selfie ? await uploadToSupabase(selfie, "selfie") : null;
+
+      // 2. Send only the small JSON payload (paths + guarantor info) to
+      //    our backend, which just records the submission.
+      const res = await api.submitKyc(
+        {
+          documentType: docType,
+          documentPath,
+          documentOriginalName: file.name,
+          ninNumber,
+          selfiePath,
+          guarantor1Name: "Not collected",
+          guarantor1Phone,
+          guarantor2Name: "Not collected",
+          guarantor2Phone,
+        },
+        token
+      );
+
       setUploaded((u) => [...u, res.submission]);
       setFile(null);
       setSelfie(null);

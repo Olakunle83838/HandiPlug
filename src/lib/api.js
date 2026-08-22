@@ -327,16 +327,28 @@ export const api = {
   |--------------------------------------------------------------------------
   */
 
+  getKycUploadUrl: (
+    payload,
+    token
+  ) =>
+    request(
+      "/kyc/upload-url",
+      {
+        method: "POST",
+        body: payload,
+        token,
+      }
+    ),
+
   submitKyc: (
-    formData,
+    payload,
     token
   ) =>
     request(
       "/kyc/submit",
       {
         method: "POST",
-        body: formData,
-        formData: true,
+        body: payload,
         token,
       }
     ),

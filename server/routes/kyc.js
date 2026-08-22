@@ -1,98 +1,99 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { supabase, generateId } from "../supabase.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const ok = ["image/png", "image/jpeg", "application/pdf"].includes(file.mimetype);
-    cb(ok ? null : new Error("Only PNG, JPG or PDF files are allowed"), ok);
-  },
-});
-
 const router = Router();
 
-// Artisan uploads KYC documents: ID document + selfie for facial verification,
-// plus 2 guarantors — matches the PRD's "NIN + facial verification + 2
-// guarantors per artisan" requirement.
-router.post(
-  "/submit",
-  requireAuth,
-  requireRole("artisan"),
-  upload.fields([{ name: "document", maxCount: 1 }, { name: "selfie", maxCount: 1 }]),
-  async (req, res) => {
-    const documentFile = req.files?.document?.[0];
-    if (!documentFile) return res.status(400).json({ error: "No ID document uploaded" });
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "application/pdf"];
 
-    const {
-      documentType,
-      ninNumber,
-      guarantor1Name,
-      guarantor1Phone,
-      guarantor2Name,
-      guarantor2Phone,
-    } = req.body;
+// Issues a short-lived signed upload URL for a single file, scoped to the
+// authenticated artisan's own folder. The browser uploads the file
+// directly to Supabase Storage using this URL — the file never passes
+// through our server, so Vercel's 4.5MB body limit never applies.
+// Security is enforced here (requireAuth/requireRole), not via Supabase
+// RLS, since our users aren't Supabase Auth sessions.
+router.post("/upload-url", requireAuth, requireRole("artisan"), async (req, res) => {
+  const { fileName, fileType, kind } = req.body;
 
-    if (!guarantor1Name || !guarantor1Phone || !guarantor2Name || !guarantor2Phone) {
-      return res.status(400).json({ error: "Both guarantors' name and phone are required" });
-    }
-
-    const selfieFile = req.files?.selfie?.[0];
-
-    try {
-      // Upload ID Document to Supabase
-      const docFilename = `${Date.now()}-${documentFile.originalname.replace(/\s+/g, "_")}`;
-      const { error: docUploadError } = await supabase.storage
-        .from("kyc-documents")
-        .upload(docFilename, documentFile.buffer, { contentType: documentFile.mimetype });
-      if (docUploadError) throw new Error("Failed to upload document: " + docUploadError.message);
-
-      // Upload Selfie to Supabase (if provided)
-      let selfieFilename = null;
-      if (selfieFile) {
-        selfieFilename = `${Date.now()}-selfie-${selfieFile.originalname.replace(/\s+/g, "_")}`;
-        const { error: selfieUploadError } = await supabase.storage
-          .from("kyc-documents")
-          .upload(selfieFilename, selfieFile.buffer, { contentType: selfieFile.mimetype });
-        if (selfieUploadError) throw new Error("Failed to upload selfie: " + selfieUploadError.message);
-      }
-
-      const submissionId = generateId();
-      const submission = {
-        id: submissionId,
-        artisanId: req.auth.id,
-        documentType: documentType || "Unspecified",
-        fileName: docFilename,
-        originalName: documentFile.originalname,
-        ninNumber: ninNumber || null,
-        selfieFileName: selfieFilename,
-        guarantors: [
-          { name: guarantor1Name, phone: guarantor1Phone },
-          { name: guarantor2Name, phone: guarantor2Phone },
-        ],
-        status: "pending",
-        submittedAt: new Date().toISOString(),
-      };
-
-      const { error: insertError } = await supabase.from("kycSubmissions").insert([submission]);
-      if (insertError) throw insertError;
-
-      res.status(201).json({ submission });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: error.message || "Server error" });
-    }
+  if (!fileName || !fileType) {
+    return res.status(400).json({ error: "fileName and fileType are required" });
   }
-);
+  if (!ALLOWED_TYPES.includes(fileType)) {
+    return res.status(400).json({ error: "Only PNG, JPG or PDF files are allowed" });
+  }
+  if (!["document", "selfie"].includes(kind)) {
+    return res.status(400).json({ error: "kind must be 'document' or 'selfie'" });
+  }
+
+  try {
+    const cleanName = fileName.replace(/\s+/g, "_");
+    const path = `${req.auth.id}/${kind}-${Date.now()}-${cleanName}`;
+
+    const { data, error } = await supabase.storage
+      .from("kyc-documents")
+      .createSignedUploadUrl(path);
+
+    if (error) throw error;
+
+    res.json({ path, signedUrl: data.signedUrl, token: data.token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || "Failed to create upload URL" });
+  }
+});
+
+// Artisan uploads KYC documents directly to Supabase Storage from the
+// browser (bypassing our server, since Vercel serverless functions cap
+// request bodies at 4.5MB). This route just records the resulting
+// storage paths + guarantor info against the artisan's submission.
+router.post("/submit", requireAuth, requireRole("artisan"), async (req, res) => {
+  const {
+    documentType,
+    documentPath,
+    documentOriginalName,
+    ninNumber,
+    selfiePath,
+    guarantor1Name,
+    guarantor1Phone,
+    guarantor2Name,
+    guarantor2Phone,
+  } = req.body;
+
+  if (!documentPath) {
+    return res.status(400).json({ error: "No ID document uploaded" });
+  }
+
+  if (!guarantor1Name || !guarantor1Phone || !guarantor2Name || !guarantor2Phone) {
+    return res.status(400).json({ error: "Both guarantors' name and phone are required" });
+  }
+
+  try {
+    const submissionId = generateId();
+    const submission = {
+      id: submissionId,
+      artisanId: req.auth.id,
+      documentType: documentType || "Unspecified",
+      fileName: documentPath,
+      originalName: documentOriginalName || documentPath,
+      ninNumber: ninNumber || null,
+      selfieFileName: selfiePath || null,
+      guarantors: [
+        { name: guarantor1Name, phone: guarantor1Phone },
+        { name: guarantor2Name, phone: guarantor2Phone },
+      ],
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+    };
+
+    const { error: insertError } = await supabase.from("kycSubmissions").insert([submission]);
+    if (insertError) throw insertError;
+
+    res.status(201).json({ submission });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || "Server error" });
+  }
+});
 
 router.get("/mine", requireAuth, requireRole("artisan"), async (req, res) => {
   try {

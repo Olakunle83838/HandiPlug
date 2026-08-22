@@ -40,6 +40,9 @@ export default function ArtisanBuildProfile() {
     <div className="flex flex-col gap-2">
       <Label>{label}</Label>
       <div className="relative w-full">
+        <span className="pointer-events-none absolute left-[17px] top-1/2 -translate-y-1/2 text-[16px]">
+          {icon}
+        </span>
         <select
           value={value}
           onChange={(e) => {
@@ -50,12 +53,12 @@ export default function ArtisanBuildProfile() {
               onChange(e.target.value);
             }
           }}
-          className="w-full appearance-none flex items-center justify-between border border-[#E5E7EB] rounded-[10px] h-[52px] pl-[17px] pr-[36px] text-[#1F2937] text-[16px] bg-white outline-none focus:border-[#FF7A00] cursor-pointer"
+          className="w-full appearance-none border border-[#E5E7EB] rounded-[10px] h-[52px] pl-[42px] pr-[36px] text-[#1F2937] text-[16px] bg-white outline-none focus:border-[#FF7A00] cursor-pointer"
         >
           {isTrade
             ? TRADE_OPTIONS.map((o) => (
                 <option key={o.label} value={o.label}>
-                  {o.icon} {o.label}
+                  {o.label}
                 </option>
               ))
             : options.map((o) => (
@@ -67,11 +70,6 @@ export default function ArtisanBuildProfile() {
         <span className="pointer-events-none absolute right-[17px] top-1/2 -translate-y-1/2 text-[#9CA3AF]">
           ▾
         </span>
-        {isTrade && (
-          <span className="pointer-events-none absolute left-[17px] top-1/2 -translate-y-1/2 opacity-0">
-            {icon}
-          </span>
-        )}
       </div>
     </div>
   );

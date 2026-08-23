@@ -68,7 +68,7 @@ export default function TopNav({
           <nav className="flex items-center gap-8">
             <button onClick={() => navigate("/splash")} className="text-[#1F2937] text-sm font-medium">Home</button>
             <button onClick={() => navigate("/search")} className="text-[#1F2937] text-sm font-medium">Find Artisans</button>
-            <button className="text-[#1F2937] text-sm font-medium">How It Works</button>
+            <button onClick={() => navigate("/how-it-works")} className={`text-sm font-medium ${pathname === "/how-it-works" ? "text-[#1C4CD1] font-semibold" : "text-[#1F2937]"}`}>How It Works</button>
             <button onClick={() => navigate("/signup")} className="text-[#1F2937] text-sm font-medium">Become an Artisan</button>
           </nav>
           <div className="flex items-center gap-3 shrink-0">

@@ -11,6 +11,7 @@ import Signup from "./screens/Signup";
 import ForgotPassword from "./screens/ForgotPassword";
 import OtpVerification from "./screens/OtpVerification";
 import AuthConfirm from "./screens/AuthConfirm";
+import HowItWorks from "./screens/HowItWorks";
 import Home from "./screens/Home";
 import SearchResults from "./screens/SearchResults";
 import ArtisanProfile from "./screens/ArtisanProfile";
@@ -61,6 +62,7 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/otp" element={<OtpVerification />} />
               <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
 
               {/* Protected Shared Routes (Customer & Artisan usually, maybe admin depending on context) */}
               <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

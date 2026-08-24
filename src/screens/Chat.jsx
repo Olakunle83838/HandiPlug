@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { StatusSpace, Avatar } from "../components/UI";
 import TopNav from "../components/TopNav";
-import { StatusPill } from "../components/DesktopExtras";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -21,10 +24,10 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const scrollRef = useRef(null);
+  const imageInputRef = useRef(null);
 
-  // Load the list of bookings this user is part of, to show as
-  // conversations. Each booking = one conversation thread.
   useEffect(() => {
     if (!token) return;
     let isMounted = true;
@@ -41,8 +44,6 @@ export default function Chat() {
     return () => { isMounted = false; };
   }, [token]);
 
-  // If nothing is selected yet, auto-select the first conversation
-  // (desktop convenience — doesn't affect mobile, which shows a list first).
   useEffect(() => {
     if (!bookingId && conversations.length > 0) {
       setSearchParams({ bookingId: conversations[0].id }, { replace: true });
@@ -102,8 +103,45 @@ export default function Chat() {
     }
   };
 
-  // The "other person" in the conversation depends on whether I'm the
-  // customer or the artisan on this booking.
+  const handleImagePick = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !bookingId) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      alert("Please choose a PNG, JPEG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      alert("Image is too large. Please choose a file under 5MB.");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      const { path, signedUrl, token: uploadToken } = await api.getMessageUploadUrl(
+        { bookingId, fileName: file.name, fileType: file.type },
+        token
+      );
+
+      const { error: uploadError } = await supabase.storage
+        .from("chat-images")
+        .uploadToSignedUrl(path, uploadToken, file, { contentType: file.type });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || "Failed to upload image");
+      }
+
+      await api.sendMessage({ bookingId, imagePath: path }, token);
+      const res = await api.getMessages(bookingId, token);
+      setMessages(res.messages || []);
+    } catch (err) {
+      alert(err.message || "Failed to send image");
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const otherPartyName = (booking) => {
     if (!booking) return "Conversation";
     return user?.role === "artisan" ? booking.customerName : booking.artisanName;
@@ -133,6 +171,32 @@ export default function Chat() {
         </div>
       </button>
     ));
+  };
+
+  const MessageBubble = ({ m }) => {
+    const isMe = m.senderId === user?.id;
+    return (
+      <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`max-w-[75%] md:max-w-[420px] rounded-2xl overflow-hidden ${
+            m.imageUrl ? "p-1.5" : "px-4 py-3"
+          } text-[15px] ${
+            isMe ? "bg-[#FF7A00] text-white rounded-br-sm" : "bg-[#F5F6F8] text-[#1F2937] rounded-bl-sm"
+          }`}
+        >
+          {m.imageUrl && (
+            <a href={m.imageUrl} target="_blank" rel="noopener noreferrer">
+              <img
+                src={m.imageUrl}
+                alt="Sent attachment"
+                className="rounded-xl max-h-[260px] w-full object-cover"
+              />
+            </a>
+          )}
+          {m.text && <div className={m.imageUrl ? "px-2.5 pt-2 pb-1" : ""}>{m.text}</div>}
+        </div>
+      </div>
+    );
   };
 
   const Bubbles = () => {
@@ -173,26 +237,33 @@ export default function Chat() {
 
     return (
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 md:px-7 py-5 flex flex-col gap-3">
-        {messages.map((m) => {
-          const isMe = m.senderId === user?.id;
-          return (
-            <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[75%] md:max-w-[420px] rounded-2xl px-4 py-3 text-[15px] ${
-                  isMe ? "bg-[#FF7A00] text-white rounded-br-sm" : "bg-[#F5F6F8] text-[#1F2937] rounded-bl-sm"
-                }`}
-              >
-                {m.text}
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((m) => <MessageBubble key={m.id} m={m} />)}
       </div>
     );
   };
 
   const Composer = () => (
-    <div className="flex items-center gap-3 px-6 md:px-7 py-4 border-t border-[#E5E7EB]">
+    <div className="flex items-center gap-2.5 px-6 md:px-7 py-4 border-t border-[#E5E7EB]">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={handleImagePick}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={() => imageInputRef.current?.click()}
+        disabled={loading || imageUploading || !bookingId}
+        title="Send a photo"
+        className="shrink-0 size-[52px] rounded-[10px] border border-[#E5E7EB] flex items-center justify-center text-xl disabled:opacity-50"
+      >
+        {imageUploading ? (
+          <span className="size-4 border-2 border-[#FF7A00] border-t-transparent rounded-full animate-spin" />
+        ) : (
+          "📷"
+        )}
+      </button>
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -216,7 +287,6 @@ export default function Chat() {
       {/* ---------- MOBILE ---------- */}
       <div className="md:hidden flex flex-col h-full w-full">
         {!bookingId ? (
-          // No conversation open yet: show the list full-screen.
           <>
             <StatusSpace />
             <div className="flex items-center gap-3 px-6 py-3 border-b border-[#E5E7EB]">

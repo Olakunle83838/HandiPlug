@@ -39,7 +39,7 @@ function NotifRow({ n, onClick }) {
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +135,7 @@ export default function Notifications() {
 
       {/* ---------- DESKTOP ---------- */}
       <div className="hidden md:flex md:flex-col md:h-full md:w-full">
-        <TopNav variant="app" />
+        <TopNav variant={user?.role === "artisan" ? "artisan" : "app"} />
         <div className="flex-1 overflow-y-auto px-12 py-8">
           <div className="max-w-[720px] mx-auto flex flex-col gap-5">
             <h1 className="text-[#1F2937] text-2xl font-bold">Notifications</h1>

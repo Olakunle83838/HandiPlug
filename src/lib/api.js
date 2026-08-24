@@ -403,6 +403,19 @@ export const api = {
       }
     ),
 
+  getMessageUploadUrl: (
+    payload,
+    token
+  ) =>
+    request(
+      "/messages/upload-url",
+      {
+        method: "POST",
+        body: payload,
+        token,
+      }
+    ),
+
   sendMessage: (
     payload,
     token

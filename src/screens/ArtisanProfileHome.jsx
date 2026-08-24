@@ -6,6 +6,7 @@ import TopNav from "../components/TopNav";
 import SidebarDesktop from "../components/SidebarDesktop";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
 const ROWS = [
   { label: "Portfolio", path: "/artisan/portfolio" },
@@ -29,16 +30,33 @@ export default function ArtisanProfileHome() {
   const handleAvatarChange = async (e) => {
     if (!e.target.files?.length || !isAuthed) return;
     const file = e.target.files[0];
-    
+    e.target.value = ""; // allow picking the same file again later
+
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       return alert("Only JPEG, PNG, and WebP are allowed.");
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return alert("Image is too large. Please choose a file under 5MB.");
     }
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("avatar", file);
-      await api.uploadAvatar(formData, token);
+      // Upload directly to Supabase Storage via a signed URL — the file
+      // never passes through our server, so no size-limit issues.
+      const { path, signedUrl, token: uploadToken } = await api.getAvatarUploadUrl(
+        { fileName: file.name, fileType: file.type },
+        token
+      );
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .uploadToSignedUrl(path, uploadToken, file, { contentType: file.type });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || "Failed to upload image");
+      }
+
+      await api.confirmAvatarUpload({ path }, token);
       window.location.reload();
     } catch (err) {
       alert(err.message || "Failed to upload avatar");

@@ -125,7 +125,7 @@ router.post("/", async (req, res) => {
       bookingId,
       senderId: req.auth.id,
       receiverId,
-      text: trimmedText || null,
+      text: trimmedText,
       imageUrl,
       createdAt: new Date().toISOString()
     };
